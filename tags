@@ -16,13 +16,12 @@ _add_common_setting	src/config.py	/^    def _add_common_setting(self):$/;"	m	cla
 _add_customized_setting	src/config.py	/^    def _add_customized_setting(self):$/;"	m	class:Config
 _load_common_setting	src/config.py	/^    def _load_common_setting(self):$/;"	m	class:Config
 _load_customized_setting	src/config.py	/^    def _load_customized_setting(self):$/;"	m	class:Config
-_modify_config	src/config.py	/^    def _modify_config(self):$/;"	m	class:Config
 _path_suitable_for_server	src/config.py	/^    def _path_suitable_for_server(self):$/;"	m	class:Config
 _print	src/trainer.py	/^_print = init_logging(log_dir, exp).info$/;"	v
 acc	src/trainer.py	/^        acc = accuracy_score(y_true, y_pred)$/;"	v
 backbone	src/trainer.py	/^backbone = configs_dict["backbone"]$/;"	v
 batch_size	src/trainer.py	/^batch_size = configs_dict["batch_size"]$/;"	v
-betas	src/trainer.py	/^                             betas=(0.9, 0.999), eps=1e-08, $/;"	v
+betas	src/trainer.py	/^                             betas=(0.9, 0.999), eps=1e-08,$/;"	v
 ckpt	src/trainer.py	/^    ckpt = torch.load(resume_path)$/;"	v
 configs	src/trainer.py	/^configs = config.Config()$/;"	v
 configs_dict	src/trainer.py	/^configs_dict = configs.get_config()$/;"	v
@@ -33,6 +32,7 @@ dataset_name	src/trainer.py	/^dataset_name = configs_dict["dataset"]$/;"	v
 desc	src/trainer.py	/^desc = "Exp-{}-Train".format(exp)$/;"	v
 ds	src/dataset.py	/^    ds = MNIST(root="..\/data", is_train=False, transform=transforms.ToTensor())$/;"	v
 ds	src/dataset.py	/^    ds = MNIST(root="..\/data", is_train=True, transform=transforms.ToTensor())$/;"	v
+eval_frequency	src/trainer.py	/^eval_frequency = configs_dict["eval_frequency"]$/;"	v
 exp	src/trainer.py	/^exp = configs_dict["experiment_index"]$/;"	v
 forward	src/net.py	/^    def forward(self, inputs):$/;"	m	class:Network
 get_config	src/config.py	/^    def get_config(self):$/;"	m	class:Config
@@ -50,7 +50,7 @@ net	src/net.py	/^    net = Network(backnone="alexnet")$/;"	v
 net	src/trainer.py	/^net = model.Network(backbone=backbone)$/;"	v
 net_state_dict	src/trainer.py	/^            net_state_dict = net.state_dict()$/;"	v
 num_workers	src/trainer.py	/^num_workers = configs_dict["num_workers"]$/;"	v
-optimizer	src/trainer.py	/^optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, $/;"	v
+optimizer	src/trainer.py	/^optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate,$/;"	v
 predict	src/trainer.py	/^            predict = net(data).cpu().data.numpy()$/;"	v
 predict	src/trainer.py	/^        predict = net(data)$/;"	v
 print_config	src/config.py	/^    def print_config(self, _print=None):$/;"	m	class:Config
@@ -63,6 +63,7 @@ start_epoch	src/trainer.py	/^    start_epoch = resume + 1$/;"	v
 start_epoch	src/trainer.py	/^start_epoch = 0$/;"	v
 str2bool	src/utils/function.py	/^def str2bool(val):$/;"	f
 target	src/trainer.py	/^            target = target.cpu().data.numpy()$/;"	v
+tf_log	src/trainer.py	/^tf_log = os.path.join(log_dir, exp)$/;"	v
 train_avg_loss	src/trainer.py	/^    train_avg_loss = np.mean(losses)$/;"	v
 train_transform	src/trainer.py	/^    train_transform = transforms.Compose([$/;"	v
 trainloader	src/trainer.py	/^                                          shuffle=True, num_workers=num_workers)$/;"	v
@@ -70,5 +71,6 @@ trainset	src/trainer.py	/^    trainset = dataset.MNIST(root=".\/data\/", is_trai
 val_transform	src/trainer.py	/^    val_transform = transforms.Compose([$/;"	v
 valloader	src/trainer.py	/^                                        shuffle=False, num_workers=num_workers)$/;"	v
 valset	src/trainer.py	/^    valset = dataset.MNIST(root=".\/data\/", is_train=False, transform=val_transform)$/;"	v
+writer	src/trainer.py	/^writer = SummaryWriter(log_dir=tf_log)$/;"	v
 y_pred	src/trainer.py	/^        y_pred = []$/;"	v
 y_true	src/trainer.py	/^        y_true = []$/;"	v
