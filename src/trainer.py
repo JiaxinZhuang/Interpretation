@@ -4,6 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 
+import sklearn
+from sklearn.metrics import accuracy_score
+
 from utils.function import init_logging, init_environment
 import config
 import dataset
@@ -24,12 +27,14 @@ dataset_name = configs_dict["dataset"]
 re_size = configs_dict["re_size"]
 input_size = configs_dict["input_size"]
 backbone = configs_dict["backbone"]
+eval_frequency = configs_dict["eval_frequency"]
+
 
 init_environment(seed=seed, cuda_id=cuda_id)
 _print = init_logging(log_dir, exp).info
 configs.print_config(_print)
-# tf_log = os.path.join(log_dir, exp)
-# writer = SummaryWriter(log_dir=tf_log)
+tf_log = os.path.join(log_dir, exp)
+writer = SummaryWriter(log_dir=tf_log)
 
 
 if dataset_name == "mnist":
@@ -50,7 +55,7 @@ if dataset_name == "mnist":
     trainset = dataset.MNIST(root="./data/", is_train=True, transform=train_transform)
     valset = dataset.MNIST(root="./data/", is_train=False, transform=val_transform)
 
-       
+
 else:
     _print("Need dataset")
     sys.exit(-1)
@@ -68,8 +73,8 @@ net.cuda()
 _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, 
-                             betas=(0.9, 0.999), eps=1e-08, 
+optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate,
+                             betas=(0.9, 0.999), eps=1e-08,
                              weight_decay=0, amsgrad=False)
 
 start_epoch = 0
@@ -97,8 +102,9 @@ for epoch in range(start_epoch, n_epochs):
         loss = criterion(predict, target)
         loss.backward()
         losses.append(loss.item())
-    
+
     train_avg_loss = np.mean(losses)
+    writer.add_scalar("Loss/train/", train_avg_loss, epoch)
     _print("Epoch:{} - train loss: {:.3f}".format(epoch, train_avg_loss))
 
     if epoch % eval_frequency:
@@ -110,10 +116,25 @@ for epoch in range(start_epoch, n_epochs):
             y_pred.append(predict)
             target = target.cpu().data.numpy()
             y_true.append(targe)
-        
+
         acc = accuracy_score(y_true, y_pred)
         _print("Epoch:{} - val acc: {:.4f}".format(epoch, acc))
+        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
 
+        y_true = []
+        y_pred = []
+        for _, (data, target) in enumerate(tqdm(valloader, ncols=70, desc="val")):
+            data = data.cuda()
+            predict = net(data).cpu().data.numpy()
+            y_pred.append(predict)
+            target = target.cpu().data.numpy()
+            y_true.append(targe)
+
+        acc = accuracy_score(y_true, y_pred)
+        _print("Epoch:{} - val acc: {:.4f}".format(epoch, acc))
+        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
+
+        # Val acc
         if acc > sota["acc"]:
             sota["acc"] = acc
             sota["epoch"] = epoch
@@ -121,4 +142,3 @@ for epoch in range(start_epoch, n_epochs):
             _print("Save model in {}".format(model_path))
             net_state_dict = net.state_dict()
             torch.save(net_state_dict, model_path)
-
