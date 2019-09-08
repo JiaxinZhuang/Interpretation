@@ -4,3 +4,71 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Config	src/config.py	/^class Config:$/;"	c
+MNIST	src/dataset.py	/^class MNIST(Dataset):$/;"	c
+Network	src/net.py	/^class Network(nn.Module):$/;"	c
+__getitem__	src/dataset.py	/^    def __getitem__(self, index):$/;"	m	class:MNIST	file:
+__init__	src/config.py	/^    def __init__(self):$/;"	m	class:Config
+__init__	src/dataset.py	/^    def __init__(self, root, is_train, transform, input_size=224):$/;"	m	class:MNIST
+__init__	src/net.py	/^    def __init__(self, backnone="alxenet"):$/;"	m	class:Network
+__len__	src/dataset.py	/^    def __len__(self):$/;"	m	class:MNIST	file:
+_add_common_setting	src/config.py	/^    def _add_common_setting(self):$/;"	m	class:Config
+_add_customized_setting	src/config.py	/^    def _add_customized_setting(self):$/;"	m	class:Config
+_load_common_setting	src/config.py	/^    def _load_common_setting(self):$/;"	m	class:Config
+_load_customized_setting	src/config.py	/^    def _load_customized_setting(self):$/;"	m	class:Config
+_modify_config	src/config.py	/^    def _modify_config(self):$/;"	m	class:Config
+_path_suitable_for_server	src/config.py	/^    def _path_suitable_for_server(self):$/;"	m	class:Config
+_print	src/trainer.py	/^_print = init_logging(log_dir, exp).info$/;"	v
+acc	src/trainer.py	/^        acc = accuracy_score(y_true, y_pred)$/;"	v
+backbone	src/trainer.py	/^backbone = configs_dict["backbone"]$/;"	v
+batch_size	src/trainer.py	/^batch_size = configs_dict["batch_size"]$/;"	v
+betas	src/trainer.py	/^                             betas=(0.9, 0.999), eps=1e-08, $/;"	v
+ckpt	src/trainer.py	/^    ckpt = torch.load(resume_path)$/;"	v
+configs	src/trainer.py	/^configs = config.Config()$/;"	v
+configs_dict	src/trainer.py	/^configs_dict = configs.get_config()$/;"	v
+criterion	src/trainer.py	/^criterion = nn.CrossEntropyLoss()$/;"	v
+cuda_id	src/trainer.py	/^cuda_id = configs_dict["cuda"]$/;"	v
+data	src/trainer.py	/^            data = data.cuda()$/;"	v
+dataset_name	src/trainer.py	/^dataset_name = configs_dict["dataset"]$/;"	v
+desc	src/trainer.py	/^desc = "Exp-{}-Train".format(exp)$/;"	v
+ds	src/dataset.py	/^    ds = MNIST(root="..\/data", is_train=False, transform=transforms.ToTensor())$/;"	v
+ds	src/dataset.py	/^    ds = MNIST(root="..\/data", is_train=True, transform=transforms.ToTensor())$/;"	v
+exp	src/trainer.py	/^exp = configs_dict["experiment_index"]$/;"	v
+forward	src/net.py	/^    def forward(self, inputs):$/;"	m	class:Network
+get_config	src/config.py	/^    def get_config(self):$/;"	m	class:Config
+init_environment	src/utils/function.py	/^def init_environment(seed=0, cuda_id=0):$/;"	f
+init_logging	src/utils/function.py	/^def init_logging(output_dir, exp):$/;"	f
+input_size	src/trainer.py	/^input_size = configs_dict["input_size"]$/;"	v
+learning_rate	src/trainer.py	/^learning_rate = configs_dict["learning_rate"]$/;"	v
+log_dir	src/trainer.py	/^log_dir = configs_dict["log_dir"]$/;"	v
+loss	src/trainer.py	/^        loss = criterion(predict, target)$/;"	v
+losses	src/trainer.py	/^    losses = []$/;"	v
+model_dir	src/trainer.py	/^model_dir = configs_dict["model_dir"]$/;"	v
+model_path	src/trainer.py	/^            model_path = os.path.join(model_dir, str(exp), str(epoch))$/;"	v
+n_epochs	src/trainer.py	/^n_epochs = configs_dict["n_epochs"]$/;"	v
+net	src/net.py	/^    net = Network(backnone="alexnet")$/;"	v
+net	src/trainer.py	/^net = model.Network(backbone=backbone)$/;"	v
+net_state_dict	src/trainer.py	/^            net_state_dict = net.state_dict()$/;"	v
+num_workers	src/trainer.py	/^num_workers = configs_dict["num_workers"]$/;"	v
+optimizer	src/trainer.py	/^optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, $/;"	v
+predict	src/trainer.py	/^            predict = net(data).cpu().data.numpy()$/;"	v
+predict	src/trainer.py	/^        predict = net(data)$/;"	v
+print_config	src/config.py	/^    def print_config(self, _print=None):$/;"	m	class:Config
+print_model	src/net.py	/^    def print_model(self, input_size):$/;"	m	class:Network
+re_size	src/trainer.py	/^re_size = configs_dict["re_size"]$/;"	v
+resume_path	src/trainer.py	/^    resume_path = os.path.join(model_dir, str(exp), str(resume))$/;"	v
+rlimit	src/utils/function.py	/^rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)$/;"	v
+seed	src/trainer.py	/^seed = configs_dict["seed"]$/;"	v
+start_epoch	src/trainer.py	/^    start_epoch = resume + 1$/;"	v
+start_epoch	src/trainer.py	/^start_epoch = 0$/;"	v
+str2bool	src/utils/function.py	/^def str2bool(val):$/;"	f
+target	src/trainer.py	/^            target = target.cpu().data.numpy()$/;"	v
+train_avg_loss	src/trainer.py	/^    train_avg_loss = np.mean(losses)$/;"	v
+train_transform	src/trainer.py	/^    train_transform = transforms.Compose([$/;"	v
+trainloader	src/trainer.py	/^                                          shuffle=True, num_workers=num_workers)$/;"	v
+trainset	src/trainer.py	/^    trainset = dataset.MNIST(root=".\/data\/", is_train=True, transform=train_transform)$/;"	v
+val_transform	src/trainer.py	/^    val_transform = transforms.Compose([$/;"	v
+valloader	src/trainer.py	/^                                        shuffle=False, num_workers=num_workers)$/;"	v
+valset	src/trainer.py	/^    valset = dataset.MNIST(root=".\/data\/", is_train=False, transform=val_transform)$/;"	v
+y_pred	src/trainer.py	/^        y_pred = []$/;"	v
+y_true	src/trainer.py	/^        y_true = []$/;"	v

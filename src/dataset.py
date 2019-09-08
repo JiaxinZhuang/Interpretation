@@ -3,6 +3,8 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
+from torchvision import transforms
+
 
 class MNIST(Dataset):
     def __init__(self, root, is_train, transform, input_size=224):
@@ -33,3 +35,13 @@ class MNIST(Dataset):
 
     def __len__(self):
         return len(self.labels)
+
+
+if __name__ == "__main__":
+    ds = MNIST(root="../data", is_train=True, transform=transforms.ToTensor())
+    for data, target in ds:
+        print(data.size(), target)
+
+    ds = MNIST(root="../data", is_train=False, transform=transforms.ToTensor())
+    for data, target in ds:
+        print(data.size(), target)
