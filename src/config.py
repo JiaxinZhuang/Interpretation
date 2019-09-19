@@ -39,7 +39,8 @@ class Config:
         self.parser.add_argument("--num_workers", default=2, type=int,
                                  help="num_workers of dataloader")
         self.parser.add_argument('--dataset', default="CUB", type=str,
-                                 choices=["CUB", "TinyImageNet", "stl10"], \
+                                 choices=["CUB", "TinyImageNet", "stl10", \
+                                          "mnist"], \
                                  help="dataset name")
         # log related
         self.parser.add_argument('--log_dir', default="./saved/logdirs/",
@@ -67,8 +68,9 @@ class Config:
         self.parser.add_argument("--weight_decay", default=5e-4, type=float,
                                  help="weight decay for optimizer")
 
-        #self.parser.add_argument("--use_SGD", default=True, type=str2bool,
-        #                         help="use SGD or Adam")
+        self.parser.add_argument("--optimizer", default="SGD", type=str,
+                                 choices = ["SGD", "Adam"],
+                                 help="use SGD or Adam")
         self.parser.add_argument("--input_size", default=224, type=int,
                                  help="image input size for model")
         self.parser.add_argument("--backbone", default="resnet34", type=str,
@@ -101,8 +103,8 @@ class Config:
         #self.parser.add_argument("--metric_function", default="l2", type=str,\
         #                         help="metric function used for \
         #                         pairwise_distance, l2 or cos")
-        #self.parser.add_argument("--server", default="local", type=str,
-        #                         help="server to run the code")
+        self.parser.add_argument("--server", default="local", type=str,
+                                 help="server to run the code")
         #self.parser.add_argument("--bilinear", default=True, type=str2bool,
         #                         help="use bilinear within model")
         #self.parser.add_argument("--finetune", default="", type=str,
@@ -144,6 +146,8 @@ class Config:
         self.config["backbone"] = self.args.backbone
         self.config["re_size"] = self.args.re_size
 
+        self.config["optimizer"] = self.args.optimizer
+
     def _load_customized_setting(self):
         """Load sepcial setting
         """
@@ -156,7 +160,7 @@ class Config:
         #self.config['batch_n_class_num'] = self.args.batch_n_class_num
         #self.config['batch_n_classes'] = self.args.batch_n_classes
         #self.config["metric_function"] = self.args.metric_function
-        #self.config["server"] = self.args.server
+        self.config["server"] = self.args.server
         #self.config["bilinear"] = self.args.bilinear
         #self.config["finetune"] = self.args.finetune
         #self.config["freeze"] = self.args.freeze
@@ -174,6 +178,9 @@ class Config:
     def _path_suitable_for_server(self):
         """Path suitable for server
         """
+        if self.config["server"] == "desktop":
+            self.config["log_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/logdirs"
+            self.config["model_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/models"
         if self.config["server"] == "local":
             self.config["log_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/logdirs"
             self.config["model_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/models"

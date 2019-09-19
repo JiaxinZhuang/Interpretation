@@ -1,0 +1,4 @@
+sklearn
+tqdm
+torchsummary
+tb-nightly
