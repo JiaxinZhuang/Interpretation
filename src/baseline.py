@@ -1,10 +1,19 @@
+# copyright 2019 jiaxin zhuang
+#
+#
+# ?? license
+# ==============================================================================
+"""Baseline.
+
+Baseline model
+
+"""
 import sys
 import os
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
 from tqdm import tqdm
 import numpy as np
 
@@ -146,7 +155,7 @@ for epoch in range(start_epoch, n_epochs):
 
         acc = accuracy_score(y_true, y_pred)
         _print("Epoch:{} - train acc: {:.4f}".format(epoch, acc))
-        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
+        writer.add_scalar("Acc/train/", acc, epoch)
 
         y_true = []
         y_pred = []
@@ -159,7 +168,7 @@ for epoch in range(start_epoch, n_epochs):
 
         acc = accuracy_score(y_true, y_pred)
         _print("Epoch:{} - val acc: {:.4f}".format(epoch, acc))
-        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
+        writer.add_scalar("Acc/val/", acc, epoch)
 
         # Val acc
         if acc > sota["acc"]:

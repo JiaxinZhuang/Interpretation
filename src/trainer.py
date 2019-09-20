@@ -1,21 +1,27 @@
+# copyright 2019 jiaxin zhuang
+#
+#
+# ?? license
+# ==============================================================================
+"""Trainer.
+
+Erase image by our defined loss
+
+"""
 import sys
 import os
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
-import numpy as np
+#from torchvision import transforms
 
-import sklearn
-from sklearn.metrics import accuracy_score
-from PIL import Image
+#from PIL import Image
 
-from utils.function import init_logging, init_environment
+from utils.function import init_logging, init_environment, preprocess_image,\
+        recreate_image, get_lr, save_image
 import config
 import dataset
 import model
+import loss
 
 configs = config.Config()
 configs_dict = configs.get_config()
@@ -26,6 +32,7 @@ seed = configs_dict["seed"]
 n_epochs = configs_dict["n_epochs"]
 log_dir = configs_dict["log_dir"]
 model_dir = configs_dict["model_dir"]
+generated_dir = configs_dict["generated_dir"]
 batch_size = configs_dict["batch_size"]
 learning_rate = configs_dict["learning_rate"]
 dataset_name = configs_dict["dataset"]
@@ -35,6 +42,10 @@ backbone = configs_dict["backbone"]
 eval_frequency = configs_dict["eval_frequency"]
 resume = configs_dict["resume"]
 optimizer = configs_dict["optimizer"]
+selected_layer = configs_dict["selected_layer"]
+selected_filter = configs_dict["selected_filter"]
+alpha = configs_dict["alpha"]
+weight_decay = configs_dict["weight_decay"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -43,132 +54,112 @@ _print = init_logging(log_dir, exp).info
 configs.print_config(_print)
 tf_log = os.path.join(log_dir, exp)
 writer = SummaryWriter(log_dir=tf_log)
+generated_dir = os.path.join(generated_dir, exp)
 
+_print("Save generated on {}".format(generated_dir))
 _print("Using device {}".format(device))
 
 if dataset_name == "mnist":
-    mean, std = 0.1307, 0.3081
-    train_transform = transforms.Compose([
-        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomCrop(input_size),
-        transforms.ToTensor(),
-        transforms.Normalize((mean, ) , (std, ))
-    ])
-    val_transform = transforms.Compose([
-        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
-        transforms.CenterCrop(input_size),
-        transforms.ToTensor(),
-        transforms.Normalize((mean, ), (std, ))
-    ])
+    mean, std = (0.1307,), (0.3081,)
+    reverse_mean = (-0.1307,)
+    reverse_std = (1/0.3081,)
+    #train_transform = transforms.Compose([
+    #    transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+    #    transforms.ToTensor(),
+    #    transforms.Normalize((mean, ) , (std, ))
+    #])
+    #val_transform = transforms.Compose([
+    #    transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+    #    transforms.ToTensor(),
+    #    transforms.Normalize((mean, ), (std, ))
+    #])
+    train_transform = None
+    val_transform = None
     trainset = dataset.MNIST(root="./data/", is_train=True, transform=train_transform)
     valset = dataset.MNIST(root="./data/", is_train=False, transform=val_transform)
-
-
 else:
     _print("Need dataset")
     sys.exit(-1)
 
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,\
-                                          shuffle=True, num_workers=num_workers)
-valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, \
-                                        shuffle=False, num_workers=num_workers)
+#trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,\
+#                                          shuffle=False, num_workers=num_workers)
+#valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, \
+#                                        shuffle=False, num_workers=num_workers)
 
+_print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
+
+image, label = trainset[0]
+processed_image = preprocess_image(image, mean=mean, std=std, resize_im=True, resize=28, device=device)
+original_image = processed_image.clone().detach()
 
 net = model.Network(backbone=backbone)
 net.to(device)
 
+criterion = loss.FileterLoss(net, selected_layer, selected_filter)
 
-_print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
-
-criterion = nn.CrossEntropyLoss()
-
-
+# Define optimizer for the image
+# Earlier layers need higher learning rates to visualize whereas layer layers need less
 if optimizer == "SGD":
     _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
-    opt = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9)
+    opt = torch.optim.SGD([processed_image], lr=learning_rate, momentum=0.9,
+                          weight_decay=weight_decay)
 elif optimizer == "Adam":
     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
-    opt = torch.optim.Adam(net.parameters(), lr=learning_rate,
+    opt = torch.optim.Adam([processed_image], lr=learning_rate,
                            betas=(0.9, 0.999), eps=1e-08,
-                           weight_decay=0, amsgrad=False)
+                           weight_decay=weight_decay, amsgrad=False)
 
 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            opt, mode='min', factor=0.1, patience=10, verbose=True,
+            opt, mode='min', factor=0.1, patience=50, verbose=True,
             threshold=1e-4)
 
 start_epoch = 0
 if resume:
-    _print("Resume from model at epoch {}".format(resume))
-    resume_path = os.path.join(model_dir, str(exp), str(resume))
+    resume_exp = resume.split("-")[0]
+    resume_epoch = resume.split("-")[1]
+    _print("Resume from model at epoch {}".format(resume_exp))
+    resume_path = os.path.join(model_dir, str(resume_exp), str(resume_epoch))
     ckpt = torch.load(resume_path)
     net.load_state_dict(ckpt)
-    start_epoch = resume + 1
 else:
     _print("Train from scrach!!")
 
 
 desc = "Exp-{}-Train".format(exp)
 sota = dict()
-sota["epoch"] = start_epoch
+sota["epoch"] = -1
 sota["acc"] = -1.0
 
-for epoch in range(start_epoch, n_epochs):
-    net.train()
-    losses = []
-    for _, (data, target) in enumerate(tqdm(trainloader, ncols=70, desc=desc)):
-        data, target = data.to(device), target.to(device)
-        predict = net(data)
-        opt.zero_grad()
-        loss = criterion(predict, target)
-        loss.backward()
-        opt.step()
-        losses.append(loss.item())
+original_image = original_image.to(device)
 
-    train_avg_loss = np.mean(losses)
-
+losses = []
+for epoch in range(n_epochs):
+    opt.zero_grad()
+    selected_filter_loss, rest_fileter_loss = criterion(processed_image, original_image)
+    loss = selected_filter_loss + alpha * rest_fileter_loss
+    loss.backward()
+    opt.step()
+    losses.append(loss.item())
+    writer.add_scalar("Loss/selected_filter_loss", selected_filter_loss.item(), epoch)
+    writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(), epoch)
+    train_loss = loss.item()
     if scheduler is not None:
-        scheduler.step(train_avg_loss)
+        scheduler.step(train_loss)
 
-    writer.add_scalar("Loss/train/", train_avg_loss, epoch)
-    _print("Epoch:{} - train loss: {:.3f}".format(epoch, train_avg_loss))
+    writer.add_scalar("Lr", get_lr(opt), epoch)
+    writer.add_scalar("Loss/total/", train_loss, epoch)
+    _print("selected_fileter_loss: {:.4f}".format(selected_filter_loss.item()))
+    _print("rest_fileter_loss: {:.4f}".format(rest_fileter_loss.item()))
+    _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
-    if epoch % eval_frequency:
-        y_true = []
-        y_pred = []
-        for _, (data, target) in enumerate(tqdm(trainloader, ncols=70, desc="train")):
-            data = data.to(device)
-            predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
-            y_pred.extend(predict)
-            target = target.cpu().data.numpy()
-            y_true.extend(target)
-
-        acc = accuracy_score(y_true, y_pred)
-        _print("Epoch:{} - train acc: {:.4f}".format(epoch, acc))
-        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
-
-        y_true = []
-        y_pred = []
-        for _, (data, target) in enumerate(tqdm(valloader, ncols=70, desc="val")):
-            data = data.to(device)
-            predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
-            y_pred.extend(predict)
-            target = target.cpu().data.numpy()
-            y_true.extend(target)
-
-        acc = accuracy_score(y_true, y_pred)
-        _print("Epoch:{} - val acc: {:.4f}".format(epoch, acc))
-        writer.add_scalar("Acc/train/", train_avg_loss, epoch)
-
-        # Val acc
-        if acc > sota["acc"]:
-            sota["acc"] = acc
-            sota["epoch"] = epoch
-            model_path = os.path.join(model_dir, str(exp), str(epoch))
-            _print("Save model in {}".format(model_path))
-            net_state_dict = net.state_dict()
-            torch.save(net_state_dict, model_path)
+    if epoch % eval_frequency == 0:
+        recreate_im = recreate_image(processed_image, reverse_mean=reverse_mean, \
+                reverse_std=reverse_std)
+        save_path = os.path.join(generated_dir, str(epoch) + ".jpg")
+        #print(recreate_im.shape)
+        save_image(recreate_im, save_path)
+        _print("save generated image in {}".format(save_path))
+        #writer.add_image("recreate_image", recreate_im, epoch, dataformats='HWC')
 
 _print("Finish Training")
-_print("Best epoch {} with Val: {:.4f}".format(sota["epoch"], sota["acc"]))

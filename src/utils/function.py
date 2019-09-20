@@ -64,7 +64,7 @@ def str2bool(val):
     return value
 
 
-def preprocess_image(pil_im, mean, std, resize=512, resize_im=True):
+def preprocess_image(pil_im, mean, std, resize=512, resize_im=True, device=None):
     """Process images for CNNs
 
     Args:
@@ -76,7 +76,10 @@ def preprocess_image(pil_im, mean, std, resize=512, resize_im=True):
     # Resize image
     if resize_im:
         pil_im.thumbnail((resize, resize))
+
     im_as_arr = np.float32(pil_im)
+    if len(im_as_arr.shape) == 2:
+        im_as_arr = np.expand_dims(im_as_arr, axis=2)
     # Convert array to [D, W, H]
     im_as_arr = im_as_arr.transpose(2, 0, 1)
     # Normalize the channels
@@ -88,7 +91,7 @@ def preprocess_image(pil_im, mean, std, resize=512, resize_im=True):
     im_as_ten = torch.from_numpy(im_as_arr).to(torch.float32)
     # Add one more channle to the beginning.
     im_as_ten.unsqueeze_(0)
-    im_as_var = im_as_ten.clone().detach().requires_grad_(True)
+    im_as_var = im_as_ten.clone().detach().to(device).requires_grad_(True)
     return im_as_var
 
 
@@ -116,6 +119,9 @@ def format_np_output(np_arr):
     # Result: Multiply with 255 and change type to make it saveable by PIL
     if np.max(np_arr) <= 1:
         np_arr = (np_arr * 255).astype(np.uint8)
+
+    if len(np_arr.shape) == 3 and np_arr.shape[2] == 1:
+        np_arr = np_arr.squeeze(axis=2)
     return np_arr
 
 
@@ -140,8 +146,10 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     Returns:
         recreate_im (numpy arr): Recreated image in array
     """
-    recreate_im = copy.copy(im_as_var.data.numpy()[0])
-    for channel in range(3):
+    recreate_im = copy.copy(im_as_var.cpu().data.numpy()[0])
+    assert len(recreate_im.shape) == 3
+    channels = recreate_im.shape[0]
+    for channel in range(channels):
         recreate_im[channel] /= reverse_std[channel]
         recreate_im[channel] -= reverse_mean[channel]
     recreate_im[recreate_im > 1] = 1
@@ -151,6 +159,9 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     recreate_im = np.uint8(recreate_im).transpose(1, 2, 0)
     return recreate_im
 
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
 
 if __name__ == "__main__":
     mean = [0.485, 0.456, 0.406]

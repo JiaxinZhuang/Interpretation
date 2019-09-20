@@ -2,3 +2,5 @@
 /saved/generated/*
 /saved/models/*
 /saved/logdirs/*
+tags
+/src/__pycache__/*

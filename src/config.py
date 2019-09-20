@@ -48,13 +48,15 @@ class Config:
                                  None means not to store')
         self.parser.add_argument('--model_dir', default="./saved/models/",
                                  type=str, help='store models, ../saved/models')
+        self.parser.add_argument('--generated_dir', default="./saved/generated/",
+                                 type=str, help='store models, ../saved/generated')
 
         self.parser.add_argument('--learning_rate', default=0.01, type=float,
                                  help="lr")
         self.parser.add_argument("--batch_size", default=64, type=int,
                                  help="batch size of each epoch, for test only")
-        self.parser.add_argument('--resume', default=0, type=int,
-                                 help="0 means no resume from saved model")
+        self.parser.add_argument('--resume', default="001-215", type=str,
+                                 help="resume exp and epoch")
         self.parser.add_argument("--n_epochs", default=1000000, type=int,
                                  help="n epochs to train")
 
@@ -65,7 +67,7 @@ class Config:
                                  help="Random seed for pytorch and Numpy ")
         self.parser.add_argument('--eps', default=1e-7, type=float,
                                  help="episilon for many formulation")
-        self.parser.add_argument("--weight_decay", default=5e-4, type=float,
+        self.parser.add_argument("--weight_decay", default=1e-4, type=float,
                                  help="weight decay for optimizer")
 
         self.parser.add_argument("--optimizer", default="SGD", type=str,
@@ -82,9 +84,12 @@ class Config:
     def _add_customized_setting(self):
         """Add customized setting
         """
-        pass
-        #self.parser.add_argument('--embedding_len', default=128, type=int,
-        #                         help='128, 256, 512, 1024, 2048')
+        self.parser.add_argument('--selected_layer', default=5, type=int,
+                help='For convNet: 3, 5')
+        self.parser.add_argument('--selected_filter', default=25, type=int,
+                help='For convNet: 3(max 20), 5(max 50)')
+        self.parser.add_argument("--alpha", default=0.5, type=float,
+                                 help="0-1")
         #self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                         help='128, 256, 512, 1024, 2048')
         #self.parser.add_argument('--margin', default=0.2, type=float,
@@ -138,6 +143,7 @@ class Config:
         self.config["eval_frequency"] = self.args.eval_frequency
         self.config['log_dir'] = self.args.log_dir
         self.config['model_dir'] = self.args.model_dir
+        self.config['generated_dir'] = self.args.generated_dir
 
         self.config["eps"] = self.args.eps
         self.config["weight_decay"] = self.args.weight_decay
@@ -151,6 +157,9 @@ class Config:
     def _load_customized_setting(self):
         """Load sepcial setting
         """
+        self.config["selected_filter"] = self.args.selected_filter
+        self.config["selected_layer"] = self.args.selected_layer
+        self.config["alpha"] = self.args.alpha
         #self.config['embedding_len'] = self.args.embedding_len
         #self.config["normalize"] = self.args.normalize
         #self.config['margin'] = self.args.margin
@@ -181,18 +190,23 @@ class Config:
         if self.config["server"] == "desktop":
             self.config["log_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/logdirs"
             self.config["model_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/models"
+            self.config["generated_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/generated"
         if self.config["server"] == "local":
             self.config["log_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/logdirs"
             self.config["model_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/models"
+            self.config["generated_dir"] = "/media/lincolnzjx/Disk2/Interpretation/saved/generated"
         elif self.config["server"] == "ls15":
             self.config["log_dir"] = "/data15/jiaxin/Fine-Grained-Recognition/saved/logdirs"
             self.config["model_dir"] = "/data15/jiaxin/Fine-Grained-Recognition/saved/models"
+            self.config["generated_dir"] = "/data15/jiaxin/Fine-Grained-Recognition/saved/generated"
         elif self.config["server"] == "ls16":
             self.config["log_dir"] = "/data16/jiaxin/Fine-Grained-Recognition/saved/logdirs"
             self.config["model_dir"] = "/data16/jiaxin/Fine-Grained-Recognition/saved/models"
+            self.config["generated_dir"] = "/data16/jiaxin/Fine-Grained-Recognition/saved/generated"
         elif self.config["server"] == "lab_center":
             self.config["log_dir"] = "/home/jiaxin/Fine-Grained-Recognition/saved/logdirs"
             self.config["model_dir"] = "/home/jiaxin/Fine-Grained-Recognition/saved/models"
+            self.config["generated_dir"] = "/home/jiaxin/Fine-Grained-Recognition/saved/generated"
 
     def print_config(self, _print=None):
         """print config
