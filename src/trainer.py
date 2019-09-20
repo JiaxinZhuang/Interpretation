@@ -111,14 +111,14 @@ elif optimizer == "Adam":
 
 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            opt, mode='min', factor=0.1, patience=50, verbose=True,
+            opt, mode='min', factor=0.1, patience=1000, verbose=True,
             threshold=1e-4)
 
 start_epoch = 0
 if resume:
     resume_exp = resume.split("-")[0]
     resume_epoch = resume.split("-")[1]
-    _print("Resume from model at epoch {}".format(resume_exp))
+    _print("Resume from model from exp: {} at epoch {}".format(resume_exp, resume_epoch))
     resume_path = os.path.join(model_dir, str(resume_exp), str(resume_epoch))
     ckpt = torch.load(resume_path)
     net.load_state_dict(ckpt)
