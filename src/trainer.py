@@ -163,3 +163,4 @@ for epoch in range(n_epochs):
         #writer.add_image("recreate_image", recreate_im, epoch, dataformats='HWC')
 
 _print("Finish Training")
+
