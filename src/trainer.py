@@ -99,20 +99,19 @@ criterion = loss.FileterLoss(net, selected_layer, selected_filter)
 
 # Define optimizer for the image
 # Earlier layers need higher learning rates to visualize whereas layer layers need less
+scheduler = None
 if optimizer == "SGD":
     _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
     opt = torch.optim.SGD([processed_image], lr=learning_rate, momentum=0.9,
                           weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                opt, mode='min', factor=0.1, patience=1000, verbose=True,
+                threshold=1e-4)
 elif optimizer == "Adam":
     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
     opt = torch.optim.Adam([processed_image], lr=learning_rate,
                            betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=False)
-
-
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            opt, mode='min', factor=0.1, patience=1000, verbose=True,
-            threshold=1e-4)
 
 start_epoch = 0
 if resume:

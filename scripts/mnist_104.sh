@@ -19,10 +19,10 @@ CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
     --eval_frequency=100 \
     --input_size=28 \
     --backbone=convNet \
-    --optimizer=SGD \
+    --optimizer=Adam \
     --learning_rate=1 \
     --alpha=1 \
-    --selected_layer=2 \
-    --selected_filter=6 \
+    --selected_layer=1 \
+    --selected_filter=10 \
     --resume=001-215 \
     2>&1 | tee $log_file
