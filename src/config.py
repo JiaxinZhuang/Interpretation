@@ -3,7 +3,7 @@ All hyper paramerers and path can be changed in this file
 """
 
 import argparse
-from utils.function import str2bool
+from utils.function import str2bool, str2list
 
 class Config:
     """Config
@@ -90,6 +90,10 @@ class Config:
                 help='For convNet: 3(max 20), 5(max 50)')
         self.parser.add_argument("--alpha", default=0.5, type=float,
                                  help="0-1")
+        self.parser.add_argument("--class_index", default="5", type=str2list,
+                                 help="[0,1,2,3,4,5,6,7] ... ")
+        self.parser.add_argument("--num_class", default=1, type=int,
+                                 help="no more than numbers of each class")
         #self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                         help='128, 256, 512, 1024, 2048')
         #self.parser.add_argument('--margin', default=0.2, type=float,
@@ -160,6 +164,8 @@ class Config:
         self.config["selected_filter"] = self.args.selected_filter
         self.config["selected_layer"] = self.args.selected_layer
         self.config["alpha"] = self.args.alpha
+        self.config["class_index"] = self.args.class_index
+        self.config["num_class"] = self.args.num_class
         #self.config['embedding_len'] = self.args.embedding_len
         #self.config["normalize"] = self.args.normalize
         #self.config['margin'] = self.args.margin
@@ -192,9 +198,9 @@ class Config:
             self.config["model_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/models"
             self.config["generated_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/generated"
         if self.config["server"] == "local":
-            self.config["log_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/logdirs"
-            self.config["model_dir"] = "/media/lincolnzjx/Disk2/interpretation/saved/models"
-            self.config["generated_dir"] = "/media/lincolnzjx/Disk2/Interpretation/saved/generated"
+            self.config["log_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/logdirs"
+            self.config["model_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/models"
+            self.config["generated_dir"] = "/media/lincolnzjx/Disk21/Interpretation/saved/generated"
         elif self.config["server"] == "ls15":
             self.config["log_dir"] = "/data15/jiaxin/Fine-Grained-Recognition/saved/logdirs"
             self.config["model_dir"] = "/data15/jiaxin/Fine-Grained-Recognition/saved/models"

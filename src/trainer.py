@@ -46,6 +46,8 @@ selected_layer = configs_dict["selected_layer"]
 selected_filter = configs_dict["selected_filter"]
 alpha = configs_dict["alpha"]
 weight_decay = configs_dict["weight_decay"]
+class_index = configs_dict["class_index"]
+num_class = configs_dict["num_class"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -89,6 +91,9 @@ else:
 _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
 image, label = trainset[0]
+#TODO:add batch read in
+#for images, labels in enumerate(trainset):
+
 processed_image = preprocess_image(image, mean=mean, std=std, resize_im=True, resize=28, device=device)
 original_image = processed_image.clone().detach()
 

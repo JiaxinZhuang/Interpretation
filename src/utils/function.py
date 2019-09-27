@@ -64,6 +64,14 @@ def str2bool(val):
     return value
 
 
+def str2list(val):
+    """convert str to bool
+    """
+    value = val.split(",")
+    value = [int(v.strip()) for v in value]
+    return value
+
+
 def preprocess_image(pil_im, mean, std, resize=512, resize_im=True, device=None):
     """Process images for CNNs
 
@@ -75,7 +83,7 @@ def preprocess_image(pil_im, mean, std, resize=512, resize_im=True, device=None)
     """
     # Resize image
     if resize_im:
-        pil_im.thumbnail((resize, resize))
+        pil_im.resize((resize, resize))
 
     im_as_arr = np.float32(pil_im)
     if len(im_as_arr.shape) == 2:
