@@ -15,13 +15,22 @@ import torch.nn.functional as F
 
 class FileterLoss(nn.Module):
     """FilterLoss.
+
+    Args:
+        model:
+        selected_layer(int):
+        selected_filter(int):
+        mode(str): mode for loss, keep is to keep the feature map for
+                   selected filter from selected layer, while remove is
+                   to remove the selected filter.
     """
-    def __init__(self, model, selected_layer, selected_filter):
+    def __init__(self, model, selected_layer, selected_filter, mode="keep"):
         super(FileterLoss, self).__init__()
         self.model = model.model.features
         self.model.eval()
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
+        self.mode = mode
         self.conv_output = None
         # Generate a random image
         self.hook_layer()
@@ -69,10 +78,10 @@ class FileterLoss(nn.Module):
 
 
 if __name__ == "__main__":
-    from torchvision.models import vgg11
-    vgg = vgg11(pretrained=False).features
-    filterloss = FileterLoss(vgg, 12, 73, 0.5)
-    inputs = torch.rand(1, 3, 28, 28)
+    import model
+    convnet = model.Network(backbone="vgg16")
+    filterloss = FileterLoss(convnet, 5, 20)
+    inputs = torch.rand(1, 1, 224, 224)
     inputs_processed = inputs.clone().detach().requires_grad_(True)
     loss = filterloss(inputs_processed, inputs)
     print(loss)

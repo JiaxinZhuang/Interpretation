@@ -75,11 +75,17 @@ class Config:
                                  help="use SGD or Adam")
         self.parser.add_argument("--input_size", default=224, type=int,
                                  help="image input size for model")
-        self.parser.add_argument("--backbone", default="resnet34", type=str,
-                                 help="backbone for model")
-
         self.parser.add_argument("--re_size", default=256, type=int,
                                  help="resize to the size")
+        self.parser.add_argument("--backbone", default="resnet34", type=str,
+                                 help="backbone for model")
+        #self.parser.add_argument("--pretrained", default=False, type=str2bool,
+        #                         help="pretrained model to use or not")
+        self.parser.add_argument("--warmup_epochs", default=-1, type=int,
+                                 help="epochs to use warm up")
+        self.parser.add_argument("--initialization", default="default", type=str,
+                                 choices=["Xavier", "default", "pretrained"],
+                                 help="initializatoin method")
 
     def _add_customized_setting(self):
         """Add customized setting
@@ -157,6 +163,9 @@ class Config:
         self.config["re_size"] = self.args.re_size
 
         self.config["optimizer"] = self.args.optimizer
+        #self.config["pretrained"] = self.args.pretrained
+        self.config["warmup_epochs"] = self.args.warmup_epochs
+        self.config["initialization"] = self.args.initialization
 
     def _load_customized_setting(self):
         """Load sepcial setting

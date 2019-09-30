@@ -167,9 +167,11 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     recreate_im = np.uint8(recreate_im).transpose(1, 2, 0)
     return recreate_im
 
+
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
 
 if __name__ == "__main__":
     mean = [0.485, 0.456, 0.406]
