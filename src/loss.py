@@ -56,14 +56,10 @@ class FileterLoss(nn.Module):
                 break
         # Loss function is the mean of the output of selected layer/filter
         # Try to minimize the mean of the output of the specific filter
-        rest_feature_map = torch.cat((self.conv_output[0, :self.selected_filter],
-                                      self.conv_output[0, self.selected_filter+1:]),
-                                     dim=0)
-        #print("rest_feature_map:", rest_feature_map.size())
-        rest_feature_map_norm = torch.norm(rest_feature_map, dim=(1,2))
-        #print("rest_feature_map_norm:", rest_feature_map_norm.size())
-        rest_fileter_loss = torch.mean(rest_feature_map_norm)
-        selected_processed_feature_map = self.conv_output[0, self.selected_filter]
+        rest_processed_feature_map = torch.cat((self.conv_output[:, :self.selected_filter],
+                                                self.conv_output[:, self.selected_filter+1:]),
+                                               dim=0)
+        selected_processed_feature_map = self.conv_output[:, self.selected_filter]
         #print("selected_processed_feature_map:", selected_processed_feature_map.size())
 
         original_outputs = original_inputs
@@ -71,17 +67,36 @@ class FileterLoss(nn.Module):
             original_outputs = layer(original_outputs)
             if index == self.selected_layer:
                 break
-        selected_original_feature_map = self.conv_output[0, self.selected_filter]
-        selected_filter_loss = F.mse_loss(selected_processed_feature_map,
-                                          selected_original_feature_map)
-        return selected_filter_loss, rest_fileter_loss
+
+        if self.mode == "keep":
+            selected_original_feature_map = self.conv_output[:, self.selected_filter]
+            selected_filter_loss = F.mse_loss(selected_processed_feature_map,
+                                              selected_original_feature_map)
+            #print("rest_feature_map:", rest_feature_map.size())
+            rest_feature_map_norm = torch.norm(rest_processed_feature_map, dim=(1, 2))
+            #print("rest_feature_map_norm:", rest_feature_map_norm.size())
+            rest_filter_loss = torch.mean(rest_feature_map_norm)
+        elif self.mode == "remove":
+            selected_feature_map_norm = torch.norm(selected_processed_feature_map, dim=(1, 2))
+            selected_filter_loss = torch.mean(selected_feature_map_norm)
+            rest_original_feature_map = torch.cat((self.conv_output[:, :self.selected_filter],
+                                                   self.conv_output[:, self.selected_filter+1:]),
+                                                  dim=0)
+            rest_filter_loss = F.mse_loss(rest_original_feature_map,
+                                          rest_processed_feature_map)
+        return selected_filter_loss, rest_filter_loss
 
 
-if __name__ == "__main__":
+def test_keep():
+    """Test keep mode in loss function.
+    """
     import model
     convnet = model.Network(backbone="vgg16")
-    filterloss = FileterLoss(convnet, 5, 20)
-    inputs = torch.rand(1, 1, 224, 224)
+    filter_loss = FileterLoss(convnet, 5, 20)
+    inputs = torch.rand(1, 3, 224, 224)
     inputs_processed = inputs.clone().detach().requires_grad_(True)
-    loss = filterloss(inputs_processed, inputs)
+    loss = filter_loss(inputs_processed, inputs)
     print(loss)
+
+if __name__ == "__main__":
+    test_keep()
