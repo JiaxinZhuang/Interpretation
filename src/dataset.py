@@ -1,45 +1,64 @@
+# copyright 2019 jiaxin zhuang
+#
+#
+# ?? license
+# ==============================================================================
+"""Dataset.
+"""
 import os
 import torchvision
-import torch
+from torchvision import transforms
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
-from torchvision import transforms
 
 
 class MNIST(Dataset):
-    def __init__(self, root, is_train, transform, input_size=224):
+    """MNIST dataset.
+    """
+    def __init__(self, root, is_train, transform, _print=None):
         self.root = root
         self.is_train = is_train
         self.transform = transform
 
-        mnist_dataset = torchvision.datasets.MNIST(root=self.root, train=self.is_train, download=False)
+        mnist_dataset = torchvision.datasets.MNIST(root=self.root,
+                                                   train=self.is_train,
+                                                   download=False)
 
         self.data = mnist_dataset.data.cpu().numpy()
         self.labels = mnist_dataset.targets.cpu().numpy()
 
         self.classes = list(set(self.labels))
-        self.target_img_dict = dict()
+        self.targets_imgs_dict = dict()
         label_np = np.array(self.labels)
         for target in self.classes:
             indexes = np.nonzero(label_np == target)[0]
-            self.target_img_dict.update({target: indexes})
+            self.targets_imgs_dict.update({target: indexes})
 
         self.data_sample = []
         self.labels_sample = []
 
     def __getitem__(self, index):
-        img = self.data[self.data_sample[index]]
-        img = self.data[index]
+        if len(self.data_sample) and len(self.labels_sample):
+            img = self.data[self.data_sample[index]]
+            label = self.labels_sample[index]
+        else:
+            img = self.data[index]
+            label = self.labels[index]
+
         img = Image.fromarray(img)
         if self.transform:
             img = self.transform(img)
-        label = self.labels[index]
         label = label.astype("int64")
         return img, label
 
     def __len__(self):
-        return len(self.labels)
+        length = 0
+        if len(self.data_sample) and len(self.labels_sample):
+            length = len(self.labels_sample)
+        else:
+            length = len(self.labels)
+        return length
 
     def set_data(self, class_index: list, num_classes: int):
         """Sample data equally.
@@ -48,7 +67,7 @@ class MNIST(Dataset):
         self.labels_sample = []
 
         for index in class_index:
-            self.data_sample.extend(self.target_img_dict[index][:num_classes])
+            self.data_sample.extend(self.targets_imgs_dict[index][:num_classes])
             self.labels_sample.extend([index] * num_classes)
         print("Len of new dataset is :{}".format(len(self.data_sample)))
         self.data_sample = np.array(self.data_sample)
@@ -66,7 +85,8 @@ class MNIST(Dataset):
 class CUB(Dataset):
     """CUB200-2011.
     """
-    def __init__(self, root="../data", is_train=True, transform=None):
+    def __init__(self, root="../data", is_train=True, transform=None,
+                 _print=None):
         self.root = os.path.join(root, "CUB_200_2011")
         self.is_train = is_train
         self.transform = transform
@@ -80,15 +100,46 @@ class CUB(Dataset):
             indexes = np.nonzero(target == targets_np)[0]
             self.targets_imgs_dict.update({target: indexes})
 
+        self.data_sample = []
+        self.labels_sample = []
+        self._print = _print
+
     def __getitem__(self, index):
-        img_path, target = self.imgs_path[index], self.targets[index]
+        if len(self.data_sample) and len(self.labels_sample):
+            img_path = self.imgs_path[self.data_sample[index]]
+            target = self.labels_sample[index]
+        else:
+            img_path, target = self.imgs_path[index], self.targets[index]
+
+        # print img_path to log for further analysis
+        if self._print:
+            self._print("Img index: {} with name: {}".format(index, img_path))
+
         img = default_loader(img_path)
         if self.transform is not None:
             img = self.transform(img)
         return img, target
 
     def __len__(self):
-        return len(self.targets)
+        length = 0
+        if len(self.data_sample) and len(self.labels_sample):
+            length = len(self.labels_sample)
+        else:
+            length = len(self.targets)
+        return length
+
+    def set_data(self, class_index: list, num_classes: int):
+        """Sample data equally.
+        """
+        self.data_sample = []
+        self.labels_sample = []
+
+        for index in class_index:
+            self.data_sample.extend(self.targets_imgs_dict[index][:num_classes])
+            self.labels_sample.extend([index] * num_classes)
+        print("Len of new dataset is :{}".format(len(self.data_sample)))
+        self.data_sample = np.array(self.data_sample)
+        self.labels_sample = np.array(self.labels_sample)
 
     def read_path(self):
         """Read img, label and split path.
@@ -121,15 +172,21 @@ class CUB(Dataset):
         return imgs_path, targets
 
 def default_loader(path):
+    """Default loader.
+    """
     from torchvision import get_image_backend
+    loader = None
     if get_image_backend() == "accimage":
-        return accimage_loader(path)
+        loader = accimage_loader(path)
     else:
-        return pil_loader(path)
+        loader = pil_loader(path)
+    return loader
 
 def accimage_loader(path):
-    import accimage
+    """Accimage loader for accelebrating loading image.
+    """
     try:
+        import accimage
         return accimage.Image(path)
     except IOError:
         # Potentionally a decoding problem, fall back to PIL.image
@@ -161,6 +218,8 @@ def txt_loader(path, is_int=True):
 
 
 def print_dataset(dataset, print_time):
+    """Print dataset.
+    """
     print(len(dataset))
     from collections import Counter
     counter = Counter()
@@ -173,8 +232,9 @@ def print_dataset(dataset, print_time):
     print(counter)
 
 
-
-if __name__ == "__main__":
+def test_cub():
+    """Test cub.
+    """
     # CUB200
     ds = CUB(root="../data", is_train=True, transform=transforms.ToTensor())
     print_dataset(ds, 1000)
@@ -187,15 +247,27 @@ if __name__ == "__main__":
     #    print(data.size(), target)
 
 
+def test_mnist():
+    """test mnist.
+    """
     # MNIST
-    #ds = MNIST(root="../data", is_train=True, transform=transforms.ToTensor())
+    ds = MNIST(root="../data", is_train=True, transform=transforms.ToTensor())
     #for data, target in ds:
     #    print(data.size(), target)
-    #ds.set_data([1,2,3], 100)
 
-    #for index in range(120):
-    #    img, label = ds.get_data(index)
+    #for index in range(len(ds)):
+    #    img, label = ds[index]
     #    print(img.shape, label)
-    #ds = MNIST(root="../data", is_train=False, transform=transforms.ToTensor())
-    #for data, target in ds:
-    #    print(data.size(), target)
+
+    # Test set_data, obtaining specific images from specific classes
+    # results: 1,2,3 per 100 images
+    ds.set_data([1, 2, 3], 100)
+    print_dataset(ds, 50)
+    # results: 1 per 100 images
+    ds.set_data([1], 100)
+    print_dataset(ds, 50)
+
+
+if __name__ == "__main__":
+    #test_cub()
+    test_mnist()

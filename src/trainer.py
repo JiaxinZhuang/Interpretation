@@ -12,9 +12,9 @@ import sys
 import os
 import torch
 from torch.utils.tensorboard import SummaryWriter
-#from torchvision import transforms
+from torchvision import transforms
 
-#from PIL import Image
+from PIL import Image
 
 from utils.function import init_logging, init_environment, preprocess_image,\
         recreate_image, get_lr, save_image
@@ -65,20 +65,45 @@ if dataset_name == "mnist":
     mean, std = (0.1307,), (0.3081,)
     reverse_mean = (-0.1307,)
     reverse_std = (1/0.3081,)
-    #train_transform = transforms.Compose([
-    #    transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
-    #    transforms.ToTensor(),
-    #    transforms.Normalize((mean, ) , (std, ))
-    #])
-    #val_transform = transforms.Compose([
-    #    transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
-    #    transforms.ToTensor(),
-    #    transforms.Normalize((mean, ), (std, ))
-    #])
+    # train_transform = transforms.Compose([
+    #     transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((mean, ) , (std, ))
+    # ])
+    # val_transform = transforms.Compose([
+    #     transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize((mean, ), (std, ))
+    # ])
     train_transform = None
     val_transform = None
-    trainset = dataset.MNIST(root="./data/", is_train=True, transform=train_transform)
-    valset = dataset.MNIST(root="./data/", is_train=False, transform=val_transform)
+    trainset = dataset.MNIST(root="./data/", is_train=True,
+                             transform=train_transform)
+    valset = dataset.MNIST(root="./data/", is_train=False,
+                           transform=val_transform)
+elif dataset_name == "CUB":
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+    train_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        # transforms.RandomCrop(input_size),
+        # transforms.RandomHorizontalFlip(),
+        # transforms.ColorJitter(brightness=0.4, saturation=0.4, hue=0.4),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    test_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        # transforms.CenterCrop(input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    trainset = dataset.CUB(root="./data/", is_train=True,
+                           transform=train_transform)
+    valset = dataset.CUB(root="./data/", is_train=False,
+                         transform=test_transform)
+    num_classes = 200
+    input_channel = 3
 else:
     _print("Need dataset")
     sys.exit(-1)
@@ -90,12 +115,19 @@ else:
 
 _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
-image, label = trainset[0]
-#TODO:add batch read in
-#for images, labels in enumerate(trainset):
 
-processed_image = preprocess_image(image, mean=mean, std=std, resize_im=True, resize=28, device=device)
-original_image = processed_image.clone().detach()
+images = []
+labels = []
+for img, label in trainset:
+    images.append(img.unsqueeze(0))
+    labels.append(label)
+original_images = torch.cat(images, dim=0)
+processed_images = torch.tensor(original_images, requires_grad=True)
+
+
+#processed_image = preprocess_image(images, mean=mean, std=std, resize_im=False,
+#                                   resize=re_size, device=device)
+#original_image = processed_image.clone().detach()
 
 net = model.Network(backbone=backbone)
 net.to(device)
@@ -107,14 +139,14 @@ criterion = loss.FileterLoss(net, selected_layer, selected_filter)
 scheduler = None
 if optimizer == "SGD":
     _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
-    opt = torch.optim.SGD([processed_image], lr=learning_rate, momentum=0.9,
+    opt = torch.optim.SGD([processed_images], lr=learning_rate, momentum=0.9,
                           weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 opt, mode='min', factor=0.1, patience=1000, verbose=True,
                 threshold=1e-4)
 elif optimizer == "Adam":
     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
-    opt = torch.optim.Adam([processed_image], lr=learning_rate,
+    opt = torch.optim.Adam([processed_images], lr=learning_rate,
                            betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=False)
 
@@ -140,7 +172,7 @@ original_image = original_image.to(device)
 losses = []
 for epoch in range(n_epochs):
     opt.zero_grad()
-    selected_filter_loss, rest_fileter_loss = criterion(processed_image, original_image)
+    selected_filter_loss, rest_fileter_loss = criterion(processed_images, original_image)
     loss = selected_filter_loss + alpha * rest_fileter_loss
     loss.backward()
     opt.step()
@@ -158,7 +190,7 @@ for epoch in range(n_epochs):
     _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
     if epoch % eval_frequency == 0:
-        recreate_im = recreate_image(processed_image, reverse_mean=reverse_mean, \
+        recreate_im = recreate_image(processed_images, reverse_mean=reverse_mean, \
                 reverse_std=reverse_std)
         save_path = os.path.join(generated_dir, str(epoch) + ".jpg")
         #print(recreate_im.shape)
@@ -167,4 +199,3 @@ for epoch in range(n_epochs):
         #writer.add_image("recreate_image", recreate_im, epoch, dataformats='HWC')
 
 _print("Finish Training")
-
