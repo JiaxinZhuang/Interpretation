@@ -16,8 +16,10 @@ from torchvision import transforms
 
 from PIL import Image
 
-from utils.function import init_logging, init_environment, preprocess_image,\
-        recreate_image, get_lr, save_image
+from utils.function import init_logging, init_environment, recreate_image, \
+        get_lr, save_image, dataname_2_save
+# preprocess_image
+
 import config
 import dataset
 import model
@@ -108,26 +110,32 @@ else:
     _print("Need dataset")
     sys.exit(-1)
 
-#trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,\
-#                                          shuffle=False, num_workers=num_workers)
-#valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, \
-#                                        shuffle=False, num_workers=num_workers)
+# trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,\
+#                                           shuffle=False,
+#                                           num_workers=num_workers)
+# valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, \
+#                                         shuffle=False,
+#                                         num_workers=num_workers)
 
 _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
 
 images = []
 labels = []
-for img, label in trainset:
+imgs_path = []
+for img, label, img_path in trainset:
     images.append(img.unsqueeze(0))
     labels.append(label)
+    imgs_path.append(img_path)
+
 original_images = torch.cat(images, dim=0)
 processed_images = torch.tensor(original_images, requires_grad=True)
 
 
-#processed_image = preprocess_image(images, mean=mean, std=std, resize_im=False,
-#                                   resize=re_size, device=device)
-#original_image = processed_image.clone().detach()
+# processed_image = preprocess_image(images, mean=mean, std=std,
+#                                    resize_im=False,
+#                                    resize=re_size, device=device)
+# original_image = processed_image.clone().detach()
 
 net = model.Network(backbone=backbone)
 net.to(device)
@@ -135,7 +143,8 @@ net.to(device)
 criterion = loss.FileterLoss(net, selected_layer, selected_filter)
 
 # Define optimizer for the image
-# Earlier layers need higher learning rates to visualize whereas layer layers need less
+# Earlier layers need higher learning rates to visualize whereas layer layers
+# need less
 scheduler = None
 if optimizer == "SGD":
     _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
@@ -154,7 +163,8 @@ start_epoch = 0
 if resume:
     resume_exp = resume.split("-")[0]
     resume_epoch = resume.split("-")[1]
-    _print("Resume from model from exp: {} at epoch {}".format(resume_exp, resume_epoch))
+    _print("Resume from model from exp: {} at epoch {}".
+           format(resume_exp, resume_epoch))
     resume_path = os.path.join(model_dir, str(resume_exp), str(resume_epoch))
     ckpt = torch.load(resume_path)
     net.load_state_dict(ckpt)
@@ -163,22 +173,23 @@ else:
 
 
 desc = "Exp-{}-Train".format(exp)
-sota = dict()
-sota["epoch"] = -1
-sota["acc"] = -1.0
+sota = {"epoch": -1, "acc": -1.0}
 
-original_image = original_image.to(device)
+original_images = original_images.to(device)
 
 losses = []
 for epoch in range(n_epochs):
     opt.zero_grad()
-    selected_filter_loss, rest_fileter_loss = criterion(processed_images, original_image)
+    selected_filter_loss, rest_fileter_loss = criterion(processed_images,
+                                                        original_images)
     loss = selected_filter_loss + alpha * rest_fileter_loss
     loss.backward()
     opt.step()
     losses.append(loss.item())
-    writer.add_scalar("Loss/selected_filter_loss", selected_filter_loss.item(), epoch)
-    writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(), epoch)
+    writer.add_scalar("Loss/selected_filter_loss", selected_filter_loss.item(),
+                      epoch)
+    writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(),
+                      epoch)
     train_loss = loss.item()
     if scheduler is not None:
         scheduler.step(train_loss)
@@ -190,12 +201,17 @@ for epoch in range(n_epochs):
     _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
     if epoch % eval_frequency == 0:
-        recreate_im = recreate_image(processed_images, reverse_mean=reverse_mean, \
-                reverse_std=reverse_std)
-        save_path = os.path.join(generated_dir, str(epoch) + ".jpg")
-        #print(recreate_im.shape)
-        save_image(recreate_im, save_path)
-        _print("save generated image in {}".format(save_path))
-        #writer.add_image("recreate_image", recreate_im, epoch, dataformats='HWC')
+        saved_dir = os.path.join(generated_dir, str(epoch))
+        os.makedirs(saved_dir, exist_ok=True)
+        saved_paths = dataname_2_save(imgs_path, saved_dir)
+        processed_images_cpu = processed_images.cpu().numpy()
+        for img, save_path in (processed_images_cpu, saved_paths):
+            recreate_im = recreate_image(img,
+                                         reverse_mean=reverse_mean,
+                                         reverse_std=reverse_std)
+            save_image(recreate_im, save_path)
+            _print("save generated image in {}".format(save_path))
+            # writer.add_image("recreate_image", recreate_im, epoch,
+            #                  dataformats='HWC')
 
 _print("Finish Training")

@@ -4,13 +4,14 @@ import sys
 import copy
 
 import resource
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
 
-from tqdm import tqdm
 import numpy as np
 import torch
 from PIL import Image
+
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
+
 
 sys.path.append("./src/utils")
 
@@ -24,7 +25,6 @@ def init_environment(seed=0, cuda_id=0):
 
     cuda_id = str(cuda_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_id
-
 
     if seed != -1:
         print("> Use seed -{}".format(seed))
@@ -72,14 +72,16 @@ def str2list(val):
     return value
 
 
-def preprocess_image(pil_im, mean, std, resize=512, resize_im=True, device=None):
+def preprocess_image(pil_im, mean, std, resize=512, resize_im=True,
+                     device=None):
     """Process images for CNNs
 
     Args:
         PIL_img (PIL_img): Image to process
         resize_im (bool): Resize to 224 or not
     Returns:
-        im_as_var (torch variable): Variable that contains processed float tensor
+        im_as_var (torch variable): Variable that contains processed
+                                    float tensor
     """
     # Resize image
     if resize_im:
@@ -154,7 +156,7 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     Returns:
         recreate_im (numpy arr): Recreated image in array
     """
-    recreate_im = copy.copy(im_as_var.cpu().data.numpy()[0])
+    recreate_im = copy.copy(im_as_var.cpu().data.numpy())
     assert len(recreate_im.shape) == 3
     channels = recreate_im.shape[0]
     for channel in range(channels):
@@ -173,7 +175,21 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
-if __name__ == "__main__":
+def dataname_2_save(imgs_path, saved_dir):
+    """Img path saved.
+    """
+    output_name = []
+    for name in imgs_path:
+        name = name.split("/")[-1:]
+        output = os.path.join(saved_dir, *name)
+        output_name.append(output)
+    print(output_name)
+    return output_name
+
+
+def _test_image_related():
+    """Test preprocess_image and save_image.
+    """
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
     reverse_mean = [-0.485, -0.456, -0.406]
@@ -184,3 +200,22 @@ if __name__ == "__main__":
     recreate_im = recreate_image(im_as_var, reverse_mean, reverse_std)
     print(recreate_im.shape)
     save_image(recreate_im, "../../saved/generated/recreate_im.jpg")
+
+
+def _test_dataname2save():
+    """Test dataname_2_save.
+    """
+    saved_dir = "/media/lincolnzjx/Disk21/interpretation/saved/generated"
+    imgs_path = ["../data/CUB_200_2011/images/001.Black_footed_Albatross\
+                 /Black_Footed_Albatross_0009_34.jpg",
+                 "../data/CUB_200_2011/images/034.Gray_crowned_Rosy_Finch\
+                 /Gray_Crowned_Rosy_Finch_0044_26976.jpg"]
+    output_name = dataname_2_save(imgs_path, saved_dir)
+    print("Test dataname2save")
+    print(imgs_path)
+    print("-"*80)
+    print(output_name)
+
+
+if __name__ == "__main__":
+    _test_dataname2save()

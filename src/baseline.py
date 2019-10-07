@@ -17,7 +17,6 @@ from torchvision import transforms
 from tqdm import tqdm
 import numpy as np
 
-import sklearn
 from sklearn.metrics import accuracy_score
 from PIL import Image
 
@@ -66,7 +65,7 @@ if dataset_name == "mnist":
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(input_size),
         transforms.ToTensor(),
-        transforms.Normalize((mean, ) , (std, ))
+        transforms.Normalize((mean, ), (std, ))
     ])
     val_transform = transforms.Compose([
         transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
@@ -74,8 +73,10 @@ if dataset_name == "mnist":
         transforms.ToTensor(),
         transforms.Normalize((mean, ), (std, ))
     ])
-    trainset = dataset.MNIST(root="./data/", is_train=True, transform=train_transform)
-    valset = dataset.MNIST(root="./data/", is_train=False, transform=val_transform)
+    trainset = dataset.MNIST(root="./data/", is_train=True,
+                             transform=train_transform)
+    valset = dataset.MNIST(root="./data/", is_train=False,
+                           transform=val_transform)
     num_classes = 200
     input_channel = 1
 elif dataset_name == "CUB":
@@ -95,18 +96,22 @@ elif dataset_name == "CUB":
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
-    trainset = dataset.CUB(root="./data/", is_train=True, transform=train_transform)
-    valset = dataset.CUB(root="./data/", is_train=False, transform=test_transform)
+    trainset = dataset.CUB(root="./data/", is_train=True,
+                           transform=train_transform)
+    valset = dataset.CUB(root="./data/", is_train=False,
+                         transform=test_transform)
     num_classes = 200
     input_channel = 3
 else:
     _print("Need dataset")
     sys.exit(-1)
 
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,\
-                                          shuffle=True, num_workers=num_workers)
-valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, \
-                                        shuffle=False, num_workers=num_workers)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                          shuffle=True,
+                                          num_workers=num_workers)
+valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
+                                        shuffle=False,
+                                        num_workers=num_workers)
 
 if initializatoin in ("default", "Xavier"):
     pretrained = False
@@ -168,7 +173,7 @@ else:
 
 
 desc = "Exp-{}-Train".format(exp)
-sota = dict()
+sota = {}
 sota["epoch"] = start_epoch
 sota["acc"] = -1.0
 
@@ -199,7 +204,8 @@ for epoch in range(start_epoch, n_epochs):
     if epoch % eval_frequency:
         y_true = []
         y_pred = []
-        for _, (data, target) in enumerate(tqdm(trainloader, ncols=70, desc="train")):
+        for _, (data, target) in enumerate(tqdm(trainloader, ncols=70,
+                                                desc="train")):
             data = data.to(device)
             predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
             y_pred.extend(predict)
@@ -212,7 +218,8 @@ for epoch in range(start_epoch, n_epochs):
 
         y_true = []
         y_pred = []
-        for _, (data, target) in enumerate(tqdm(valloader, ncols=70, desc="val")):
+        for _, (data, target) in enumerate(tqdm(valloader, ncols=70,
+                                                desc="val")):
             data = data.to(device)
             predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
             y_pred.extend(predict)

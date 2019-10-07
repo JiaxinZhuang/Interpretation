@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
-import torch.nn.functional as F
-
 
 
 class Network(nn.Module):
@@ -142,7 +140,7 @@ def init_weights(net, _print):
 
 
 if __name__ == "__main__":
-    #net = Network(backnone="alexnet")
+    # net = Network(backnone="alexnet")
     input_size = (3, 224, 224)
     net = Network(backbone="vgg16", num_classes=200)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

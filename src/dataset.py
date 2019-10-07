@@ -29,7 +29,7 @@ class MNIST(Dataset):
         self.labels = mnist_dataset.targets.cpu().numpy()
 
         self.classes = list(set(self.labels))
-        self.targets_imgs_dict = dict()
+        self.targets_imgs_dict = {}
         label_np = np.array(self.labels)
         for target in self.classes:
             indexes = np.nonzero(label_np == target)[0]
@@ -50,7 +50,7 @@ class MNIST(Dataset):
         if self.transform:
             img = self.transform(img)
         label = label.astype("int64")
-        return img, label
+        return img, label,
 
     def __len__(self):
         length = 0
@@ -67,19 +67,20 @@ class MNIST(Dataset):
         self.labels_sample = []
 
         for index in class_index:
-            self.data_sample.extend(self.targets_imgs_dict[index][:num_classes])
+            self.data_sample.extend(self.targets_imgs_dict
+                                    [index][:num_classes])
             self.labels_sample.extend([index] * num_classes)
         print("Len of new dataset is :{}".format(len(self.data_sample)))
         self.data_sample = np.array(self.data_sample)
         self.labels_sample = np.array(self.labels_sample)
 
-    #def get_data(self, index):
-    #    img = Image.fromarray(img)
-    #    if self.transform:
-    #        img = self.transform(img)
-    #    label = self.labels_sample[index]
-    #    label = label.astype("int64")
-    #    return img, label
+    # def get_data(self, index):
+    #     img = Image.fromarray(img)
+    #     if self.transform:
+    #         img = self.transform(img)
+    #     label = self.labels_sample[index]
+    #     label = label.astype("int64")
+    #     return img, label
 
 
 class CUB(Dataset):
@@ -94,7 +95,7 @@ class CUB(Dataset):
         self.imgs_path, self.targets = self.read_path()
         self.classes = list(set(self.targets))
 
-        self.targets_imgs_dict = dict()
+        self.targets_imgs_dict = {}
         targets_np = np.array(self.targets)
         for target in self.classes:
             indexes = np.nonzero(target == targets_np)[0]
@@ -118,7 +119,8 @@ class CUB(Dataset):
         img = default_loader(img_path)
         if self.transform is not None:
             img = self.transform(img)
-        return img, target
+
+        return img, target, img_path
 
     def __len__(self):
         length = 0
@@ -135,7 +137,8 @@ class CUB(Dataset):
         self.labels_sample = []
 
         for index in class_index:
-            self.data_sample.extend(self.targets_imgs_dict[index][:num_classes])
+            self.data_sample.extend(self.targets_imgs_dict
+                                    [index][:num_classes])
             self.labels_sample.extend([index] * num_classes)
         print("Len of new dataset is :{}".format(len(self.data_sample)))
         self.data_sample = np.array(self.data_sample)
@@ -157,19 +160,24 @@ class CUB(Dataset):
         train_test_list = train_test_file
 
         if self.is_train:
-            train_img_path = [os.path.join(self.root, "images", x) \
-                              for i, x in zip(train_test_list, img_name_list) if i]
-            train_targets = [x for i, x in zip(train_test_list, label_list) if i]
+            train_img_path = [os.path.join(self.root, "images", x)
+                              for i, x in zip(train_test_list, img_name_list)
+                              if i]
+            train_targets = [x for i, x in zip(train_test_list, label_list)
+                             if i]
             imgs_path = train_img_path
             targets = train_targets
         else:
-            test_img_path = [os.path.join(self.root, "images", x) \
-                             for i, x in zip(train_test_list, img_name_list) if not i]
-            test_targets = [x for i, x in zip(train_test_list, label_list) if not i]
+            test_img_path = [os.path.join(self.root, "images", x)
+                             for i, x in zip(train_test_list, img_name_list)
+                             if not i]
+            test_targets = [x for i, x in zip(train_test_list, label_list) if
+                            not i]
             imgs_path = test_img_path
             targets = test_targets
 
         return imgs_path, targets
+
 
 def default_loader(path):
     """Default loader.
@@ -182,6 +190,7 @@ def default_loader(path):
         loader = pil_loader(path)
     return loader
 
+
 def accimage_loader(path):
     """Accimage loader for accelebrating loading image.
     """
@@ -191,6 +200,7 @@ def accimage_loader(path):
     except IOError:
         # Potentionally a decoding problem, fall back to PIL.image
         return pil_loader(path)
+
 
 def pil_loader(path):
     """Image Loader."""
@@ -224,9 +234,9 @@ def print_dataset(dataset, print_time):
     from collections import Counter
     counter = Counter()
     labels = []
-    for index, (img, label) in enumerate(dataset):
+    for index, (img, label, img_path) in enumerate(dataset):
         if index % print_time == 0:
-            print(img.size(), label)
+            print(img.size(), label, img_path)
         labels.append(label)
     counter.update(labels)
     print(counter)
@@ -238,13 +248,13 @@ def test_cub():
     # CUB200
     ds = CUB(root="../data", is_train=True, transform=transforms.ToTensor())
     print_dataset(ds, 1000)
-    #for data, target in ds:
-    #    print(data.size(), target)
+    # for data, target in ds:
+    #     print(data.size(), target)
 
     ds = CUB(root="../data", is_train=False, transform=transforms.ToTensor())
     print_dataset(ds, 1000)
-    #for data, target in ds:
-    #    print(data.size(), target)
+    # for data, target in ds:
+    #     print(data.size(), target)
 
 
 def test_mnist():
@@ -252,15 +262,15 @@ def test_mnist():
     """
     # MNIST
     ds = MNIST(root="../data", is_train=True, transform=transforms.ToTensor())
-    #for data, target in ds:
-    #    print(data.size(), target)
+    # for data, target in ds:
+    #     print(data.size(), target)
 
-    #for index in range(len(ds)):
-    #    img, label = ds[index]
-    #    print(img.shape, label)
+    # for index in range(len(ds)):
+    #     img, label = ds[index]
+    #     print(img.shape, label)
 
-    # Test set_data, obtaining specific images from specific classes
-    # results: 1,2,3 per 100 images
+    #  Test set_data, obtaining specific images from specific classes
+    #  results: 1,2,3 per 100 images
     ds.set_data([1, 2, 3], 100)
     print_dataset(ds, 50)
     # results: 1 per 100 images
@@ -269,5 +279,5 @@ def test_mnist():
 
 
 if __name__ == "__main__":
-    #test_cub()
-    test_mnist()
+    test_cub()
+    # test_mnist()

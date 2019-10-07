@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class FileterLoss(nn.Module):
     """FilterLoss.
 
@@ -42,7 +43,8 @@ class FileterLoss(nn.Module):
             """Hook function.
             """
             # Get the conv output of selected filter (from selected layer)
-            #self.conv_output[self.selected_layer] = grad_out[0, self.selected_filter]
+            # self.conv_output[self.selected_layer] = \
+            #                               grad_out[0, self.selected_filter]
             self.conv_output = grad_out
 
         # Hook the selected layer
@@ -57,16 +59,19 @@ class FileterLoss(nn.Module):
         # Loss function is the mean of the output of selected layer/filter
         # Try to minimize the mean of the output of the specific filter
 
-        #print(self.conv_output[:, :self.selected_filter].size())
-        #print(self.conv_output[:, self.selected_filter+1: ].size())
+        # print(self.conv_output[:, :self.selected_filter].size())
+        # print(self.conv_output[:, self.selected_filter+1: ].size())
 
         # Concat tensor along the channels
-        rest_processed_feature_map = torch.cat((self.conv_output[:, :self.selected_filter],
-                                                self.conv_output[:, self.selected_filter+1:]),
-                                               dim=1)
-        #print(rest_processed_feature_map.size())
-        selected_processed_feature_map = self.conv_output[:, self.selected_filter]
-        #print("selected_processed_feature_map:", selected_processed_feature_map.size())
+        rest_processed_feature_map = \
+            torch.cat((self.conv_output[:, :self.selected_filter],
+                       self.conv_output[:, self.selected_filter+1:]),
+                      dim=1)
+        # print(rest_processed_feature_map.size())
+        selected_processed_feature_map = \
+            self.conv_output[:, self.selected_filter]
+        # print("selected_processed_feature_map:",
+        # selected_processed_feature_map.size())
 
         # Obtain original tensors
         original_outputs = original_inputs
@@ -76,19 +81,23 @@ class FileterLoss(nn.Module):
                 break
 
         if self.mode == "keep":
-            selected_original_feature_map = self.conv_output[:, self.selected_filter]
+            selected_original_feature_map = \
+                    self.conv_output[:, self.selected_filter]
             selected_filter_loss = F.mse_loss(selected_processed_feature_map,
                                               selected_original_feature_map)
-            #print("rest_feature_map:", rest_feature_map.size())
-            rest_feature_map_norm = torch.norm(rest_processed_feature_map, dim=(2, 3))
-            #print("rest_feature_map_norm:", rest_feature_map_norm.size())
+            # print("rest_feature_map:", rest_feature_map.size())
+            rest_feature_map_norm = torch.norm(rest_processed_feature_map,
+                                               dim=(2, 3))
+            # print("rest_feature_map_norm:", rest_feature_map_norm.size())
             rest_filter_loss = torch.mean(rest_feature_map_norm)
         elif self.mode == "remove":
-            selected_feature_map_norm = torch.norm(selected_processed_feature_map, dim=(1, 2))
+            selected_feature_map_norm = \
+                    torch.norm(selected_processed_feature_map, dim=(1, 2))
             selected_filter_loss = torch.mean(selected_feature_map_norm)
-            rest_original_feature_map = torch.cat((self.conv_output[:, :self.selected_filter],
-                                                   self.conv_output[:, self.selected_filter+1:]),
-                                                  dim=1)
+            rest_original_feature_map = \
+                torch.cat((self.conv_output[:, :self.selected_filter],
+                           self.conv_output[:, self.selected_filter+1:]),
+                          dim=1)
             rest_filter_loss = F.mse_loss(rest_original_feature_map,
                                           rest_processed_feature_map)
         return selected_filter_loss, rest_filter_loss
@@ -118,6 +127,7 @@ def test_remove():
     inputs_processed = inputs.clone().detach().requires_grad_(True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
+
 
 if __name__ == "__main__":
     # test keep
