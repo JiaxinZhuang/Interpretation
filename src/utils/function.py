@@ -156,7 +156,7 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     Returns:
         recreate_im (numpy arr): Recreated image in array
     """
-    recreate_im = copy.copy(im_as_var.cpu().data.numpy())
+    recreate_im = copy.copy(im_as_var)
     assert len(recreate_im.shape) == 3
     channels = recreate_im.shape[0]
     for channel in range(channels):

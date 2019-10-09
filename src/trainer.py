@@ -50,6 +50,7 @@ alpha = configs_dict["alpha"]
 weight_decay = configs_dict["weight_decay"]
 class_index = configs_dict["class_index"]
 num_class = configs_dict["num_class"]
+mode = configs_dict["mode"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -86,6 +87,8 @@ if dataset_name == "mnist":
 elif dataset_name == "CUB":
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
+    reverse_mean = [-0.485, -0.456, -0.406]
+    reverse_std = [1/0.229, 1/0.224, 1/0.225]
     train_transform = transforms.Compose([
         transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
         # transforms.RandomCrop(input_size),
@@ -120,6 +123,7 @@ else:
 _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
 
+trainset.set_data(class_index, num_class)
 images = []
 labels = []
 imgs_path = []
@@ -128,8 +132,8 @@ for img, label, img_path in trainset:
     labels.append(label)
     imgs_path.append(img_path)
 
-original_images = torch.cat(images, dim=0)
-processed_images = torch.tensor(original_images, requires_grad=True)
+original_images = torch.cat(images, dim=0).to(device)
+processed_images = torch.tensor(original_images, requires_grad=True).to(device)
 
 
 # processed_image = preprocess_image(images, mean=mean, std=std,
@@ -137,10 +141,11 @@ processed_images = torch.tensor(original_images, requires_grad=True)
 #                                    resize=re_size, device=device)
 # original_image = processed_image.clone().detach()
 
-net = model.Network(backbone=backbone)
+net = model.Network(backbone=backbone, num_classes=num_classes)
 net.to(device)
 
-criterion = loss.FileterLoss(net, selected_layer, selected_filter)
+_print("Loss using mode: {}".format(mode))
+criterion = loss.FileterLoss(net, selected_layer, selected_filter, mode)
 
 # Define optimizer for the image
 # Earlier layers need higher learning rates to visualize whereas layer layers
@@ -204,8 +209,8 @@ for epoch in range(n_epochs):
         saved_dir = os.path.join(generated_dir, str(epoch))
         os.makedirs(saved_dir, exist_ok=True)
         saved_paths = dataname_2_save(imgs_path, saved_dir)
-        processed_images_cpu = processed_images.cpu().numpy()
-        for img, save_path in (processed_images_cpu, saved_paths):
+        processed_images_cpu = processed_images.detach().cpu().numpy()
+        for img, save_path in zip(processed_images_cpu, saved_paths):
             recreate_im = recreate_image(img,
                                          reverse_mean=reverse_mean,
                                          reverse_std=reverse_std)

@@ -109,6 +109,9 @@ class Config:
                                  help="[0,1,2,3,4,5,6,7] ... ")
         self.parser.add_argument("--num_class", default=1, type=int,
                                  help="no more than numbers of each class")
+        self.parser.add_argument("--mode", default="keep", type=str,
+                                 choices=["keep", "remove"],
+                                 help="mode for loss function")
         # self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                          help='128, 256, 512, 1024, 2048')
         # self.parser.add_argument('--margin', default=0.2, type=float,
@@ -187,6 +190,7 @@ class Config:
         self.config["alpha"] = self.args.alpha
         self.config["class_index"] = self.args.class_index
         self.config["num_class"] = self.args.num_class
+        self.config["mode"] = self.args.mode
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize
         # self.config['margin'] = self.args.margin
