@@ -9,6 +9,8 @@ Loss function would be defined here
 
 """
 
+import sys
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -57,10 +59,8 @@ class FileterLoss(nn.Module):
             if index == self.selected_layer:
                 break
         # Loss function is the mean of the output of selected layer/filter
+        # The final loss would be designed at a pixel level
         # Try to minimize the mean of the output of the specific filter
-
-        # print(self.conv_output[:, :self.selected_filter].size())
-        # print(self.conv_output[:, self.selected_filter+1: ].size())
 
         # Concat tensor along the channels
         rest_processed_feature_map = \
@@ -72,6 +72,8 @@ class FileterLoss(nn.Module):
             self.conv_output[:, self.selected_filter]
         # print("selected_processed_feature_map:",
         # selected_processed_feature_map.size())
+        *_, height, width = selected_processed_feature_map.size()
+        pixels = height * width
 
         # Obtain original tensors
         original_outputs = original_inputs
@@ -86,13 +88,14 @@ class FileterLoss(nn.Module):
             selected_filter_loss = F.mse_loss(selected_processed_feature_map,
                                               selected_original_feature_map)
             # print("rest_feature_map:", rest_feature_map.size())
+            # [batch_size, channel, height, width] -> [batch_size, channel]
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
-                                               dim=(2, 3))
+                                               dim=(2, 3)) / pixels
             # print("rest_feature_map_norm:", rest_feature_map_norm.size())
             rest_filter_loss = torch.mean(rest_feature_map_norm)
         elif self.mode == "remove":
             selected_feature_map_norm = \
-                    torch.norm(selected_processed_feature_map, dim=(1, 2))
+                torch.norm(selected_processed_feature_map, dim=(1, 2)) / pixels
             selected_filter_loss = torch.mean(selected_feature_map_norm)
             rest_original_feature_map = \
                 torch.cat((self.conv_output[:, :self.selected_filter],
@@ -100,6 +103,9 @@ class FileterLoss(nn.Module):
                           dim=1)
             rest_filter_loss = F.mse_loss(rest_original_feature_map,
                                           rest_processed_feature_map)
+        else:
+            print("No loss function of mode available")
+            sys.exit(-1)
         return selected_filter_loss, rest_filter_loss
 
 
@@ -111,7 +117,7 @@ def test_keep():
     convnet = model.Network(backbone="vgg16")
     filter_loss = FileterLoss(convnet, 0, 17, mode="keep")
     inputs = torch.rand(3, 3, 224, 224)
-    inputs_processed = inputs.clone().detach().requires_grad_(True)
+    inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
 
@@ -124,7 +130,7 @@ def test_remove():
     convnet = model.Network(backbone="vgg16")
     filter_loss = FileterLoss(convnet, 0, 17, mode="remove")
     inputs = torch.rand(3, 3, 224, 224)
-    inputs_processed = inputs.clone().detach().requires_grad_(True)
+    inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
 

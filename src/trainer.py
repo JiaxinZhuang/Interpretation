@@ -63,6 +63,7 @@ generated_dir = os.path.join(generated_dir, exp)
 
 _print("Save generated on {}".format(generated_dir))
 _print("Using device {}".format(device))
+_print("Alpha is {}".format(alpha))
 
 if dataset_name == "mnist":
     mean, std = (0.1307,), (0.3081,)
@@ -133,7 +134,8 @@ for img, label, img_path in trainset:
     imgs_path.append(img_path)
 
 original_images = torch.cat(images, dim=0).to(device)
-processed_images = torch.tensor(original_images, requires_grad=True).to(device)
+processed_images = original_images.clone().detach().requires_grad_(True)
+processed_images = processed_images.to(device)
 
 
 # processed_image = preprocess_image(images, mean=mean, std=std,
@@ -163,6 +165,9 @@ elif optimizer == "Adam":
     opt = torch.optim.Adam([processed_images], lr=learning_rate,
                            betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=False)
+else:
+    _print("Optimizer not available")
+    sys.exit(-1)
 
 start_epoch = 0
 if resume:
