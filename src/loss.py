@@ -1,8 +1,3 @@
-# copyright 2019 jiaxin zhuang
-#
-#
-# ?? license
-# ==============================================================================
 """Loss.
 
 Loss function would be defined here
@@ -50,7 +45,8 @@ class FileterLoss(nn.Module):
             self.conv_output = grad_out
 
         # Hook the selected layer
-        self.model[self.selected_layer].register_forward_hook(hook_function)
+        self.model[self.selected_layer].\
+            register_forward_hook(hook_function)
 
     def forward(self, processed_inputs, original_inputs):
         processed_outputs = processed_inputs
@@ -85,17 +81,35 @@ class FileterLoss(nn.Module):
         if self.mode == "keep":
             selected_original_feature_map = \
                     self.conv_output[:, self.selected_filter]
-            selected_filter_loss = F.mse_loss(selected_processed_feature_map,
-                                              selected_original_feature_map)
+            # selected_filter_loss = (selected_original_feature_map -
+            #                         selected_processed_feature_map) ** 2
+            # selected_filter_loss = torch.sum(selected_filter_loss, dim=(1, 2))
+            selected_filter_loss = torch.norm((selected_original_feature_map -
+                                               selected_processed_feature_map),
+                                              dim=(1, 2), p=2)
+            # print(selected_filter_loss.sum())
+            # print(selected_filter_loss.sum() / selected_filter_loss.numel())
+            # print(selected_filter_loss.size())
+            selected_filter_loss = torch.mean(selected_filter_loss)
+            # selected_filter_loss = F.mse_loss(selected_processed_feature_map,
+            #                                   selected_original_feature_map)
             # print("rest_feature_map:", rest_feature_map.size())
             # [batch_size, channel, height, width] -> [batch_size, channel]
-            rest_feature_map_norm = torch.norm(rest_processed_feature_map,
-                                               dim=(2, 3)) / pixels
+            # rest_feature_map_norm = torch.norm(rest_processed_feature_map,
+            #                                    dim=(2, 3)) / pixels
             # print("rest_feature_map_norm:", rest_feature_map_norm.size())
+            rest_feature_map_norm = torch.norm(rest_processed_feature_map,
+                                               dim=(2, 3), p=1)
+            # print(rest_feature_map_norm.sum())
+            # print(rest_feature_map_norm.size())
+            # print(rest_feature_map_norm.sum() / rest_feature_map_norm.numel())
             rest_filter_loss = torch.mean(rest_feature_map_norm)
+            # print(rest_processed_feature_map[0][0].sum())
         elif self.mode == "remove":
+            # selected_feature_map_norm = \
+            #     torch.norm(selected_processed_feature_map, dim=(1, 2)) / pixels
             selected_feature_map_norm = \
-                torch.norm(selected_processed_feature_map, dim=(1, 2)) / pixels
+                torch.norm(selected_processed_feature_map, dim=(1, 2))
             selected_filter_loss = torch.mean(selected_feature_map_norm)
             rest_original_feature_map = \
                 torch.cat((self.conv_output[:, :self.selected_filter],
@@ -114,10 +128,12 @@ def test_keep():
     """
     print("Test keep ----------")
     import model
-    convnet = model.Network(backbone="vgg16")
-    filter_loss = FileterLoss(convnet, 0, 17, mode="keep")
-    inputs = torch.rand(3, 3, 224, 224)
-    inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
+    convnet = model.Network(backbone="vgg16", pretrained=True)
+    filter_loss = FileterLoss(convnet, 1, 0, mode="keep")
+    # inputs = torch.rand(3, 3, 224, 224)
+    # inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
+    inputs = torch.zeros(3, 3, 224, 224)
+    inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
 
@@ -127,10 +143,10 @@ def test_remove():
     """
     print("Test remove ----------")
     import model
-    convnet = model.Network(backbone="vgg16")
-    filter_loss = FileterLoss(convnet, 0, 17, mode="remove")
-    inputs = torch.rand(3, 3, 224, 224)
-    inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
+    convnet = model.Network(backbone="vgg16", pretrained=True)
+    filter_loss = FileterLoss(convnet, 1, 17, mode="remove")
+    inputs = torch.zeros(3, 3, 224, 224)
+    inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
 
@@ -139,4 +155,4 @@ if __name__ == "__main__":
     # test keep
     test_keep()
     # test remove
-    test_remove()
+    # test_remove()

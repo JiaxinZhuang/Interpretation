@@ -102,6 +102,29 @@ elif dataset_name == "CUB":
                          transform=test_transform)
     num_classes = 200
     input_channel = 3
+elif dataset_name == "Caltech101":
+    mean = [0.5495916, 0.52337694, 0.49149787]
+    std = [0.3202951, 0.31704363, 0.32729807]
+    train_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        transforms.RandomCrop(input_size),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.4, saturation=0.4, hue=0.4),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    test_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        transforms.CenterCrop(input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    trainset = dataset.Caltech101(root="./data/", is_train=True,
+                                  transform=train_transform)
+    valset = dataset.Caltech101(root="./data/", is_train=False,
+                                transform=test_transform)
+    num_classes = 101
+    input_channel = 3
 else:
     _print("Need dataset")
     sys.exit(-1)
@@ -180,7 +203,8 @@ sota["acc"] = -1.0
 for epoch in range(start_epoch, n_epochs):
     net.train()
     losses = []
-    for _, (data, target) in enumerate(tqdm(trainloader, ncols=70, desc=desc)):
+    for _, (data, target, _) in enumerate(tqdm(trainloader,
+                                               ncols=70, desc=desc)):
         data, target = data.to(device), target.to(device)
         predict = net(data)
         opt.zero_grad()
@@ -204,8 +228,8 @@ for epoch in range(start_epoch, n_epochs):
     if epoch % eval_frequency:
         y_true = []
         y_pred = []
-        for _, (data, target) in enumerate(tqdm(trainloader, ncols=70,
-                                                desc="train")):
+        for _, (data, target, _) in enumerate(tqdm(trainloader, ncols=70,
+                                                   desc="train")):
             data = data.to(device)
             predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
             y_pred.extend(predict)
@@ -218,8 +242,8 @@ for epoch in range(start_epoch, n_epochs):
 
         y_true = []
         y_pred = []
-        for _, (data, target) in enumerate(tqdm(valloader, ncols=70,
-                                                desc="val")):
+        for _, (data, target, _) in enumerate(tqdm(valloader, ncols=70,
+                                                   desc="val")):
             data = data.to(device)
             predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
             y_pred.extend(predict)

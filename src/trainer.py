@@ -17,7 +17,7 @@ from torchvision import transforms
 from PIL import Image
 
 from utils.function import init_logging, init_environment, recreate_image, \
-        get_lr, save_image, dataname_2_save
+        get_lr, save_image, dataname_2_save, get_grad_norm
 # preprocess_image
 
 import config
@@ -47,6 +47,7 @@ optimizer = configs_dict["optimizer"]
 selected_layer = configs_dict["selected_layer"]
 selected_filter = configs_dict["selected_filter"]
 alpha = configs_dict["alpha"]
+beta = configs_dict["beta"]
 weight_decay = configs_dict["weight_decay"]
 class_index = configs_dict["class_index"]
 num_class = configs_dict["num_class"]
@@ -63,7 +64,7 @@ generated_dir = os.path.join(generated_dir, exp)
 
 _print("Save generated on {}".format(generated_dir))
 _print("Using device {}".format(device))
-_print("Alpha is {}".format(alpha))
+_print("Alpha is {}, Beta is {}".format(alpha, beta))
 
 if dataset_name == "mnist":
     mean, std = (0.1307,), (0.3081,)
@@ -110,6 +111,32 @@ elif dataset_name == "CUB":
                          transform=test_transform)
     num_classes = 200
     input_channel = 3
+elif dataset_name == "Caltech101":
+    mean = [0.5495916, 0.52337694, 0.49149787]
+    std = [0.3202951, 0.31704363, 0.32729807]
+    reverse_mean = [-0.5495916, -0.52337694, -0.49149787]
+    reverse_std = [1/0.3202951, 1/0.31704363, 1/0.32729807]
+    train_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        # transforms.RandomCrop(input_size),
+        # transforms.RandomHorizontalFlip(),
+        # transforms.ColorJitter(brightness=0.4, saturation=0.4, hue=0.4),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    test_transform = transforms.Compose([
+        transforms.Resize((re_size, re_size), interpolation=Image.BILINEAR),
+        # transforms.CenterCrop(input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+    trainset = dataset.Caltech101(root="./data/", is_train=True,
+                                  transform=train_transform)
+    valset = dataset.Caltech101(root="./data/", is_train=False,
+                                transform=test_transform)
+    num_classes = 101
+    input_channel = 3
+
 else:
     _print("Need dataset")
     sys.exit(-1)
@@ -158,7 +185,7 @@ if optimizer == "SGD":
     opt = torch.optim.SGD([processed_images], lr=learning_rate, momentum=0.9,
                           weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                opt, mode='min', factor=0.1, patience=1000, verbose=True,
+                opt, mode='min', factor=0.1, patience=5000, verbose=True,
                 threshold=1e-4)
 elif optimizer == "Adam":
     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
@@ -192,8 +219,21 @@ for epoch in range(n_epochs):
     opt.zero_grad()
     selected_filter_loss, rest_fileter_loss = criterion(processed_images,
                                                         original_images)
-    loss = selected_filter_loss + alpha * rest_fileter_loss
+    # if alpha != 0 and (1-alpha) != 0:
+    # use beat to omit gradient from rest_filter_loss
+    loss = alpha * selected_filter_loss + beta * rest_fileter_loss
+    # elif alpha == 0:
+    #     loss = (1-alpha) * rest_fileter_loss
+    # else:
+    #     loss = selected_filter_loss
     loss.backward()
+
+    writer.add_histogram("Processed_images", processed_images.clone().
+                         cpu().data.numpy(), epoch)
+    writer.add_histogram("Processed_images_grad", processed_images.grad.
+                         clone().cpu().data.numpy(), epoch)
+    writer.add_scalar("Grad_Norm", get_grad_norm(processed_images), epoch)
+
     opt.step()
     losses.append(loss.item())
     writer.add_scalar("Loss/selected_filter_loss", selected_filter_loss.item(),

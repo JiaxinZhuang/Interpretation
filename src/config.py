@@ -41,9 +41,9 @@ class Config:
                                  help="cuda visible device")
         self.parser.add_argument("--num_workers", default=2, type=int,
                                  help="num_workers of dataloader")
-        self.parser.add_argument('--dataset', default="CUB", type=str,
+        self.parser.add_argument('--dataset', default="Caltech101", type=str,
                                  choices=["CUB", "TinyImageNet", "stl10",
-                                          "mnist"],
+                                          "mnist", "Caltech101"],
                                  help="dataset name")
         # log related
         self.parser.add_argument('--log_dir', default="./saved/logdirs/",
@@ -105,6 +105,9 @@ class Config:
                                  help='For convNet: 3(max 20), 5(max 50)')
         self.parser.add_argument("--alpha", default=0.5, type=float,
                                  help="0-1")
+        self.parser.add_argument("--beta", default=1, type=float,
+                                 help="PLEASE DO NOT CHANGE unless you are \
+                                       VERY sure.")
         self.parser.add_argument("--class_index", default="5", type=str2list,
                                  help="[0,1,2,3,4,5,6,7] ... ")
         self.parser.add_argument("--num_class", default=1, type=int,
@@ -188,6 +191,7 @@ class Config:
         self.config["selected_filter"] = self.args.selected_filter
         self.config["selected_layer"] = self.args.selected_layer
         self.config["alpha"] = self.args.alpha
+        self.config["beta"] = self.args.beta
         self.config["class_index"] = self.args.class_index
         self.config["num_class"] = self.args.num_class
         self.config["mode"] = self.args.mode
@@ -226,17 +230,17 @@ class Config:
             self.config["model_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/models"
             self.config["generated_dir"] = "/media/lincolnzjx/Disk21/Interpretation/saved/generated"
         elif self.config["server"] == "ls15":
-            self.config["log_dir"] = "/data15/jiaxin/interpretation/saved/logdirs"
-            self.config["model_dir"] = "/data15/jiaxin/interpretation/saved/models"
-            self.config["generated_dir"] = "/data15/jiaxin/interpretation/saved/generated"
+            self.config["log_dir"] = "/data15/jiaxin/Interpretation/saved/logdirs"
+            self.config["model_dir"] = "/data15/jiaxin/Interpretation/saved/models"
+            self.config["generated_dir"] = "/data15/jiaxin/Interpretation/saved/generated"
         elif self.config["server"] == "ls16":
-            self.config["log_dir"] = "/data16/jiaxin/interpretation/saved/logdirs"
-            self.config["model_dir"] = "/data16/jiaxin/interpretation/saved/models"
-            self.config["generated_dir"] = "/data16/jiaxin/interpretation/saved/generated"
+            self.config["log_dir"] = "/data16/jiaxin/Interpretation/saved/logdirs"
+            self.config["model_dir"] = "/data16/jiaxin/Interpretation/saved/models"
+            self.config["generated_dir"] = "/data16/jiaxin/Interpretation/saved/generated"
         elif self.config["server"] == "lab_center":
-            self.config["log_dir"] = "/home/jiaxin/interpretation/saved/logdirs"
-            self.config["model_dir"] = "/home/jiaxin/interpretation/saved/models"
-            self.config["generated_dir"] = "/home/jiaxin/interpretation/saved/generated"
+            self.config["log_dir"] = "/home/jiaxin/Interpretation/saved/logdirs"
+            self.config["model_dir"] = "/home/jiaxin/Interpretation/saved/models"
+            self.config["generated_dir"] = "/home/jiaxin/Interpretation/saved/generated"
         else:
             print("Illegal server configuration")
             sys.exit(-1)

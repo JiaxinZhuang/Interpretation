@@ -175,6 +175,14 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
+def get_grad_norm(processed_images):
+    """Get grad norm L2 for processed_images.
+    """
+    grads = processed_images.grad.clone().cpu()
+    grads_norm = torch.norm(grads)
+    return grads_norm
+
+
 def dataname_2_save(imgs_path, saved_dir):
     """Img path saved.
     """
