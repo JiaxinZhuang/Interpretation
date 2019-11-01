@@ -23,6 +23,7 @@ from PIL import Image
 from model import init_weights
 from utils.function import init_logging, init_environment, get_lr
 from utils.WarmUpLR import WarmUpLR
+from utils.metric import mean_class_recall
 import config
 import dataset
 import model
@@ -46,7 +47,9 @@ eval_frequency = configs_dict["eval_frequency"]
 resume = configs_dict["resume"]
 optimizer = configs_dict["optimizer"]
 warmup_epochs = configs_dict["warmup_epochs"]
-initializatoin = configs_dict["initialization"]
+initialization = configs_dict["initialization"]
+weight_decay = configs_dict["weight_decay"]
+dropout = configs_dict["dropout"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -79,6 +82,7 @@ if dataset_name == "mnist":
                            transform=val_transform)
     num_classes = 200
     input_channel = 1
+    metric_priority = "acc"
 elif dataset_name == "CUB":
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -102,6 +106,7 @@ elif dataset_name == "CUB":
                          transform=test_transform)
     num_classes = 200
     input_channel = 3
+    metric_priority = "acc"
 elif dataset_name == "Caltech101":
     mean = [0.5495916, 0.52337694, 0.49149787]
     std = [0.3202951, 0.31704363, 0.32729807]
@@ -125,6 +130,7 @@ elif dataset_name == "Caltech101":
                                 transform=test_transform)
     num_classes = 101
     input_channel = 3
+    metric_priority = "mcr"
 else:
     _print("Need dataset")
     sys.exit(-1)
@@ -136,21 +142,19 @@ valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
                                         shuffle=False,
                                         num_workers=num_workers)
 
-if initializatoin in ("default", "Xavier"):
-    pretrained = False
-elif initializatoin == "pretrained":
+pretrained = False
+if initialization == "pretrained":
     pretrained = True
-else:
-    _print("Need initializatoin method")
-    sys.exit(-1)
-_print("Initialization with {}".format(initializatoin))
+_print("Initialization with {}".format(initialization))
 
 _print("Using pretrained: {}".format(pretrained))
+_print("Using dropout: {}".format(dropout))
 net = model.Network(backbone=backbone, num_classes=num_classes,
-                    input_channel=input_channel, pretrained=pretrained)
+                    input_channel=input_channel, pretrained=pretrained,
+                    dropout=dropout)
 
-if initializatoin == "Xavier":
-    net = init_weights(net, _print)
+if initialization not in ("default", "pretrained"):
+    net = init_weights(net, initialization, _print)
 
 net.to(device)
 
@@ -165,7 +169,7 @@ scheduler = None
 if optimizer == "SGD":
     _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
     opt = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9,
-                          )
+                          weight_decay=weight_decay)
     if warmup_epochs > 0:
         _print("Using warm up for :{}".format(warmup_epochs))
         iters_per_epoch = len(trainloader)
@@ -178,7 +182,7 @@ elif optimizer == "Adam":
     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
     opt = torch.optim.Adam(net.parameters(), lr=learning_rate,
                            betas=(0.9, 0.999), eps=1e-08,
-                           weight_decay=0, amsgrad=False)
+                           weight_decay=weight_decay, amsgrad=True)
 else:
     _print("Need optimizer")
     sys.exit(-1)
@@ -198,7 +202,7 @@ else:
 desc = "Exp-{}-Train".format(exp)
 sota = {}
 sota["epoch"] = start_epoch
-sota["acc"] = -1.0
+sota[metric_priority] = -1.0
 
 for epoch in range(start_epoch, n_epochs):
     net.train()
@@ -221,11 +225,18 @@ for epoch in range(start_epoch, n_epochs):
     if scheduler is not None and epoch >= warmup_epochs:
         scheduler.step(train_avg_loss)
 
+    # writer.add_scalar("Grad_Norm", get_grad_norm(net), epoch)
+    # writer.add_histogram("Net", Net.clone().
+    #                      cpu().data.numpy(), epoch)
+    # writer.add_histogram("Net_grad", Net.grad.
+    #                      clone().cpu().data.numpy(), epoch)
+    # Plot
     writer.add_scalar("Lr", get_lr(opt), epoch)
     writer.add_scalar("Loss/train/", train_avg_loss, epoch)
     _print("Epoch:{} - train loss: {:.3f}".format(epoch, train_avg_loss))
 
     if epoch % eval_frequency:
+        net.eval()
         y_true = []
         y_pred = []
         for _, (data, target, _) in enumerate(tqdm(trainloader, ncols=70,
@@ -251,12 +262,20 @@ for epoch in range(start_epoch, n_epochs):
             y_true.extend(target)
 
         acc = accuracy_score(y_true, y_pred)
+        mcr = mean_class_recall(y_true, y_pred)
         _print("Epoch:{} - val acc: {:.4f}".format(epoch, acc))
+        _print("Epoch:{} - val mcr: {:.4f}".format(epoch, mcr))
         writer.add_scalar("Acc/val/", acc, epoch)
+        writer.add_scalar("Mcr/val/", mcr, epoch)
+
+        if metric_priority == "acc":
+            metric = acc
+        elif metric_priority == "mcr":
+            metric = mcr
 
         # Val acc
-        if acc > sota["acc"]:
-            sota["acc"] = acc
+        if metric > sota[metric_priority]:
+            sota[metric_priority] = acc
             sota["epoch"] = epoch
             model_path = os.path.join(model_dir, str(exp), str(epoch))
             _print("Save model in {}".format(model_path))
@@ -264,4 +283,6 @@ for epoch in range(start_epoch, n_epochs):
             torch.save(net_state_dict, model_path)
 
 _print("Finish Training")
-_print("Best epoch {} with Val: {:.4f}".format(sota["epoch"], sota["acc"]))
+_print("Best epoch {} with {} on Val: {:.4f}".format(sota["epoch"],
+                                                     metric_priority,
+                                                     sota[metric_priority]))

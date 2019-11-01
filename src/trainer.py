@@ -52,6 +52,7 @@ weight_decay = configs_dict["weight_decay"]
 class_index = configs_dict["class_index"]
 num_class = configs_dict["num_class"]
 mode = configs_dict["mode"]
+clip_grad = configs_dict["clip_grad"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -227,6 +228,11 @@ for epoch in range(n_epochs):
     # else:
     #     loss = selected_filter_loss
     loss.backward()
+
+    # Clip gradient using maximum value
+    if clip_grad:
+        torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1,
+                                       norm_type=torch._six.inf)
 
     writer.add_histogram("Processed_images", processed_images.clone().
                          cpu().data.numpy(), epoch)

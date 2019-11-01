@@ -24,6 +24,6 @@ CUDA_VISIBLE_DEVICES=3 python -u src/baseline.py \
     --resume="" \
     --backbone=vgg16 \
     --optimizer=SGD \
-    --learning_rate=1e-2 \
+    --learning_rate=5e-2 \
     --initialization=default \
     2>&1 | tee $log_file

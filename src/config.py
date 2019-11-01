@@ -4,7 +4,7 @@ All hyper paramerers and path can be changed in this file
 
 import sys
 import argparse
-from utils.function import str2list
+from utils.function import str2list, str2bool
 
 
 class Config:
@@ -74,7 +74,7 @@ class Config:
                                  help="Random seed for pytorch and Numpy ")
         self.parser.add_argument('--eps', default=1e-7, type=float,
                                  help="episilon for many formulation")
-        self.parser.add_argument("--weight_decay", default=1e-4, type=float,
+        self.parser.add_argument("--weight_decay", default=5e-4, type=float,
                                  help="weight decay for optimizer")
 
         self.parser.add_argument("--optimizer", default="SGD", type=str,
@@ -93,7 +93,9 @@ class Config:
                                  help="epochs to use warm up")
         self.parser.add_argument("--initialization", default="default",
                                  type=str,
-                                 choices=["Xavier", "default", "pretrained"],
+                                 choices=["xavier_normal", "default",
+                                          "pretrained", "kaiming_normal",
+                                          "kaiming_uniform", "xavier_uniform"],
                                  help="initializatoin method")
 
     def _add_customized_setting(self):
@@ -115,6 +117,11 @@ class Config:
         self.parser.add_argument("--mode", default="keep", type=str,
                                  choices=["keep", "remove"],
                                  help="mode for loss function")
+        self.parser.add_argument("--dropout", default=True, type=str2bool,
+                                 choices=[True, False], help="Whether to use \
+                                 dropout when training baseline")
+        self.parser.add_argument("--clip_grad", default=False, type=str2bool,
+                                 help="Whether to clip gradient")
         # self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                          help='128, 256, 512, 1024, 2048')
         # self.parser.add_argument('--margin', default=0.2, type=float,
@@ -195,6 +202,8 @@ class Config:
         self.config["class_index"] = self.args.class_index
         self.config["num_class"] = self.args.num_class
         self.config["mode"] = self.args.mode
+        self.config["dropout"] = self.args.dropout
+        self.config["clip_grad"] = self.args.clip_grad
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize
         # self.config['margin'] = self.args.margin

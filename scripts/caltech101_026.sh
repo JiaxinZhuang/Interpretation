@@ -10,7 +10,7 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=3 python -u src/baseline.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/baseline.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
@@ -25,5 +25,6 @@ CUDA_VISIBLE_DEVICES=3 python -u src/baseline.py \
     --backbone=vgg16 \
     --optimizer=SGD \
     --learning_rate=1e-2 \
-    --initialization=default \
+    --initialization=pretrained \
+    --dropout=False \
     2>&1 | tee $log_file

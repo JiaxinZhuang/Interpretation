@@ -5,18 +5,22 @@ import torchvision
 from torchsummary import summary
 
 
+from utils.initialization import _kaiming_normal, _xavier_normal, \
+        _kaiming_uniform, _xavier_uniform
+
+
 class Network(nn.Module):
     """Network
     """
     def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
-                 pretrained=False):
+                 pretrained=False, dropout=True):
         super(Network, self).__init__()
         if backbone == "alexnet":
             model = AlexNet(num_classes, input_channel)
         elif backbone == "convNet":
             model = convNet()
         elif backbone == "vgg16":
-            model = VGG16(num_classes, input_channel, pretrained)
+            model = VGG16(num_classes, input_channel, pretrained, dropout)
         else:
             print("Need model")
             sys.exit(-1)
@@ -95,7 +99,8 @@ class convNet(nn.Module):
 class VGG16(nn.Module):
     """Vgg16.
     """
-    def __init__(self, num_classes, input_channel, pretrained=False):
+    def __init__(self, num_classes, input_channel, pretrained=False,
+                 dropout=True):
         super(VGG16, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=pretrained)
         self.features = vgg16.features
@@ -103,6 +108,8 @@ class VGG16(nn.Module):
         self.fc = nn.Sequential(
             *list(vgg16.classifier.children())[:-1],
             nn.Linear(4096, num_classes))
+        if dropout is False:
+            self.remove_dropout()
 
     def forward(self, inputs):
         out = self.features(inputs)
@@ -111,8 +118,25 @@ class VGG16(nn.Module):
         out = self.fc(out)
         return out
 
+    def remove_dropout(self):
+        """Replace dropout using direct connection.
+        """
+        for name, children in self.fc.named_children():
+            if isinstance(children, nn.Dropout):
+                self.fc[int(name)] = Identity()
 
-def init_weights(net, _print):
+
+class Identity(nn.Module):
+    """Identity path.
+    """
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, inputs):
+        return inputs
+
+
+def init_weights(net, method, _print):
     """Initialize weights of the networks.
 
         weights of conv layers and fully connected layers are both initialzied
@@ -120,22 +144,16 @@ def init_weights(net, _print):
         uniformly drawn from [-a, a], where a = sqrt(6 * (din + dout)), for
         batch normalization layers, y=1, b=0, all biases initialized to 0
     """
-    for module in net.modules():
-        if isinstance(module, nn.Conv2d):
-            _print("Init Conv2d")
-            nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                nn.init.constant_(module.bias, 0)
-        elif isinstance(module, nn.BatchNorm2d):
-            _print("Init Batch-normalization")
-            nn.init.constant_(module.weight, 1)
-            nn.init.constant_(module.bias, 0)
-        elif isinstance(module, nn.Linear):
-            _print("Init Linear")
-            nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                nn.init.constant_(module.bias, 0)
-
+    if method == "kaiming_normal":
+        net = _kaiming_normal(net, _print)
+    elif method == "kaiming_uniform":
+        net = _kaiming_uniform(net, _print)
+    elif method == "xavier_uniform":
+        net = _xavier_uniform(net, _print)
+    elif method == "xavier_normal":
+        net = _xavier_normal(net, _print)
+    else:
+        _print("Init weight: Need legal initialization method")
     return net
 
 

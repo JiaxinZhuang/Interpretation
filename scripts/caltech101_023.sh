@@ -10,14 +10,14 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=3 python -u src/baseline.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/baseline.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=500 \
     --batch_size=96 \
     --num_workers=4 \
-    --server=ls15 \
+    --server=ls16 \
     --eval_frequency=2 \
     --input_size=224 \
     --re_size=256 \

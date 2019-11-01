@@ -8,7 +8,7 @@ import sys
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+# import torch.nn.functional as F
 
 
 class FileterLoss(nn.Module):
@@ -69,7 +69,7 @@ class FileterLoss(nn.Module):
         # print("selected_processed_feature_map:",
         # selected_processed_feature_map.size())
         *_, height, width = selected_processed_feature_map.size()
-        pixels = height * width
+        # pixels = height * width
 
         # Obtain original tensors
         original_outputs = original_inputs
@@ -83,7 +83,8 @@ class FileterLoss(nn.Module):
                     self.conv_output[:, self.selected_filter]
             # selected_filter_loss = (selected_original_feature_map -
             #                         selected_processed_feature_map) ** 2
-            # selected_filter_loss = torch.sum(selected_filter_loss, dim=(1, 2))
+            # selected_filter_loss = torch.sum(selected_filter_loss,
+            #                                  dim=(1, 2))
             selected_filter_loss = torch.norm((selected_original_feature_map -
                                                selected_processed_feature_map),
                                               dim=(1, 2), p=2)
@@ -102,21 +103,29 @@ class FileterLoss(nn.Module):
                                                dim=(2, 3), p=1)
             # print(rest_feature_map_norm.sum())
             # print(rest_feature_map_norm.size())
-            # print(rest_feature_map_norm.sum() / rest_feature_map_norm.numel())
+            # print(rest_feature_map_norm.sum() /
+            # rest_feature_map_norm.numel())
             rest_filter_loss = torch.mean(rest_feature_map_norm)
             # print(rest_processed_feature_map[0][0].sum())
         elif self.mode == "remove":
             # selected_feature_map_norm = \
-            #     torch.norm(selected_processed_feature_map, dim=(1, 2)) / pixels
+            #     torch.norm(selected_processed_feature_map,
+            #                dim=(1, 2)) / pixels
             selected_feature_map_norm = \
-                torch.norm(selected_processed_feature_map, dim=(1, 2))
+                torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
+            # print(selected_feature_map_norm.size())
             selected_filter_loss = torch.mean(selected_feature_map_norm)
             rest_original_feature_map = \
                 torch.cat((self.conv_output[:, :self.selected_filter],
                            self.conv_output[:, self.selected_filter+1:]),
                           dim=1)
-            rest_filter_loss = F.mse_loss(rest_original_feature_map,
-                                          rest_processed_feature_map)
+            rest_filter_loss = torch.norm((rest_original_feature_map -
+                                          rest_processed_feature_map),
+                                          dim=(2, 3), p=2)
+            # print(rest_filter_loss.size())
+            rest_filter_loss = torch.mean(rest_filter_loss)
+            # rest_filter_loss = F.mse_loss(rest_original_feature_map,
+            #                               rest_processed_feature_map)
         else:
             print("No loss function of mode available")
             sys.exit(-1)
@@ -155,4 +164,4 @@ if __name__ == "__main__":
     # test keep
     test_keep()
     # test remove
-    # test_remove()
+    test_remove()

@@ -10,12 +10,12 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=1 python -u src/baseline.py \
+CUDA_VISIBLE_DEVICES=2 python -u src/baseline.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=500 \
-    --batch_size=64 \
+    --batch_size=96 \
     --num_workers=4 \
     --server=ls15 \
     --eval_frequency=2 \
@@ -24,6 +24,6 @@ CUDA_VISIBLE_DEVICES=1 python -u src/baseline.py \
     --resume="" \
     --backbone=vgg16 \
     --optimizer=SGD \
-    --learning_rate=1e-1 \
-    --initialization=Xavier \
+    --learning_rate=1e-2 \
+    --initialization=xavier_uniform \
     2>&1 | tee $log_file

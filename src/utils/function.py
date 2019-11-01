@@ -183,6 +183,12 @@ def get_grad_norm(processed_images):
     return grads_norm
 
 
+# def get_net_grad_norm(net):
+#     """Get grad norm L2 for net."""
+#     grad_norm =
+#     for name, param in net.named_parameters():
+
+
 def dataname_2_save(imgs_path, saved_dir):
     """Img path saved.
     """
