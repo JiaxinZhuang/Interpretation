@@ -50,6 +50,8 @@ warmup_epochs = configs_dict["warmup_epochs"]
 initialization = configs_dict["initialization"]
 weight_decay = configs_dict["weight_decay"]
 dropout = configs_dict["dropout"]
+conv_bias = configs_dict["conv_bias"]
+linear_bias = configs_dict["linear_bias"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -149,9 +151,12 @@ _print("Initialization with {}".format(initialization))
 
 _print("Using pretrained: {}".format(pretrained))
 _print("Using dropout: {}".format(dropout))
+_print("Using conv_bias: {}".format(conv_bias))
+_print("Using linear_bias: {}".format(linear_bias))
 net = model.Network(backbone=backbone, num_classes=num_classes,
                     input_channel=input_channel, pretrained=pretrained,
-                    dropout=dropout)
+                    dropout=dropout, conv_bias=conv_bias,
+                    linear_bias=linear_bias)
 
 if initialization not in ("default", "pretrained"):
     net = init_weights(net, initialization, _print)

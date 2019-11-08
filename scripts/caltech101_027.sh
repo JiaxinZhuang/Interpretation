@@ -10,23 +10,23 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=5 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/baseline.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
-    --n_epochs=80000 \
-    --server=ls16 \
-    --eval_frequency=100 \
-    --re_size=224 \
+    --n_epochs=500 \
+    --batch_size=96 \
+    --num_workers=4 \
+    --server=ls15 \
+    --eval_frequency=2 \
+    --input_size=224 \
+    --re_size=256 \
+    --resume="" \
     --backbone=vgg16 \
     --optimizer=SGD \
-    --learning_rate=1e-1 \
-    --alpha=100 \
-    --beta=1 \
-    Z-selected_layer=20 \
-    --selected_filter=49 \
-    --resume=011-161 \
-    --num_class=30 \
-    --class_index=1 \
-    --mode=keep \
+    --learning_rate=1e-2 \
+    --initialization=default \
+    --dropout=False \
+    --conv_bias=False \
+    --linear_bias=True \
     2>&1 | tee $log_file

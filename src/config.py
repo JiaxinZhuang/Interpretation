@@ -74,7 +74,7 @@ class Config:
                                  help="Random seed for pytorch and Numpy ")
         self.parser.add_argument('--eps', default=1e-7, type=float,
                                  help="episilon for many formulation")
-        self.parser.add_argument("--weight_decay", default=5e-4, type=float,
+        self.parser.add_argument("--weight_decay", default=1e-4, type=float,
                                  help="weight decay for optimizer")
 
         self.parser.add_argument("--optimizer", default="SGD", type=str,
@@ -110,6 +110,9 @@ class Config:
         self.parser.add_argument("--beta", default=1, type=float,
                                  help="PLEASE DO NOT CHANGE unless you are \
                                        VERY sure.")
+        self.parser.add_argument("--gamma", default=0, type=float,
+                                 help="gamma for regularization, default not \
+                                       to use.")
         self.parser.add_argument("--class_index", default="5", type=str2list,
                                  help="[0,1,2,3,4,5,6,7] ... ")
         self.parser.add_argument("--num_class", default=1, type=int,
@@ -122,6 +125,28 @@ class Config:
                                  dropout when training baseline")
         self.parser.add_argument("--clip_grad", default=False, type=str2bool,
                                  help="Whether to clip gradient")
+        self.parser.add_argument("--inter", default=False, type=str2bool,
+                                 choices=[True, False],
+                                 help="interact between different channles")
+        self.parser.add_argument("--rho", default=0, type=float,
+                                 help="rho for interact between different \
+                                       channles")
+        self.parser.add_argument("--conv_bias", default=True, type=str2bool,
+                                 choices=[True, False],
+                                 help="whether to keep conv bias")
+        self.parser.add_argument("--linear_bias", default=True, type=str2bool,
+                                 choices=[True, False],
+                                 help="whether to keep linear bias")
+        self.parser.add_argument("--regularization", default="None", type=str,
+                                 choices=["None", "L1", "L2",
+                                          "TotalVariation",
+                                          "ClipNorm", "ClipContribution"],
+                                 help="Use which regularization method to \
+                                       reduce the complexity of processed \
+                                       images")
+        self.parser.add_argument("--regular_ex", default=1, type=float,
+                                 help="When using TotalVariation, exponential\
+                                       for regularization.")
         # self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                          help='128, 256, 512, 1024, 2048')
         # self.parser.add_argument('--margin', default=0.2, type=float,
@@ -142,6 +167,7 @@ class Config:
         #                          help="metric function used for \
         #                          pairwise_distance, l2 or cos")
         self.parser.add_argument("--server", default="local", type=str,
+                                 choices=["local", "ls15", "ls16"],
                                  help="server to run the code")
         # self.parser.add_argument("--bilinear", default=True, type=str2bool,
         #                          help="use bilinear within model")
@@ -199,11 +225,18 @@ class Config:
         self.config["selected_layer"] = self.args.selected_layer
         self.config["alpha"] = self.args.alpha
         self.config["beta"] = self.args.beta
+        self.config["gamma"] = self.args.gamma
         self.config["class_index"] = self.args.class_index
         self.config["num_class"] = self.args.num_class
         self.config["mode"] = self.args.mode
         self.config["dropout"] = self.args.dropout
         self.config["clip_grad"] = self.args.clip_grad
+        self.config["inter"] = self.args.inter
+        self.config["rho"] = self.args.rho
+        self.config["conv_bias"] = self.args.conv_bias
+        self.config["linear_bias"] = self.args.linear_bias
+        self.config["regularization"] = self.args.regularization
+        self.config["regular_ex"] = self.args.regular_ex
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize
         # self.config['margin'] = self.args.margin

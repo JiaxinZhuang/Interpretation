@@ -53,6 +53,11 @@ class_index = configs_dict["class_index"]
 num_class = configs_dict["num_class"]
 mode = configs_dict["mode"]
 clip_grad = configs_dict["clip_grad"]
+inter = configs_dict["inter"]
+rho = configs_dict["rho"]
+regularization = configs_dict["regularization"]
+regular_ex = configs_dict["regular_ex"]
+gamma = configs_dict["gamma"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,7 +70,9 @@ generated_dir = os.path.join(generated_dir, exp)
 
 _print("Save generated on {}".format(generated_dir))
 _print("Using device {}".format(device))
-_print("Alpha is {}, Beta is {}".format(alpha, beta))
+_print("Alpha is {}, Beta is {}, Gamma is {}".format(alpha, beta, gamma))
+_print("Whether to use inter: {} with rho: {}".format(inter, rho))
+_print("Whether to use regularization: {}".format(regularization))
 
 if dataset_name == "mnist":
     mean, std = (0.1307,), (0.3081,)
@@ -175,7 +182,10 @@ net = model.Network(backbone=backbone, num_classes=num_classes)
 net.to(device)
 
 _print("Loss using mode: {}".format(mode))
-criterion = loss.FileterLoss(net, selected_layer, selected_filter, mode)
+criterion = loss.FileterLoss(net, selected_layer, selected_filter, mode,
+                             inter=inter, rho=rho,
+                             regularization=regularization,
+                             p=regular_ex, _print=_print)
 
 # Define optimizer for the image
 # Earlier layers need higher learning rates to visualize whereas layer layers
@@ -218,11 +228,12 @@ original_images = original_images.to(device)
 losses = []
 for epoch in range(n_epochs):
     opt.zero_grad()
-    selected_filter_loss, rest_fileter_loss = criterion(processed_images,
-                                                        original_images)
+    selected_filter_loss, rest_fileter_loss, regularization_loss = \
+        criterion(processed_images, original_images)
     # if alpha != 0 and (1-alpha) != 0:
     # use beat to omit gradient from rest_filter_loss
-    loss = alpha * selected_filter_loss + beta * rest_fileter_loss
+    loss = alpha * selected_filter_loss + beta * rest_fileter_loss + \
+        gamma * regularization_loss
     # elif alpha == 0:
     #     loss = (1-alpha) * rest_fileter_loss
     # else:
@@ -245,6 +256,8 @@ for epoch in range(n_epochs):
     writer.add_scalar("Loss/selected_filter_loss", selected_filter_loss.item(),
                       epoch)
     writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(),
+                      epoch)
+    writer.add_scalar("Loss/regularization_loss", regularization_loss.item(),
                       epoch)
     train_loss = loss.item()
     if scheduler is not None:

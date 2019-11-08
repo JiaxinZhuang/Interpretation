@@ -13,14 +13,16 @@ class Network(nn.Module):
     """Network
     """
     def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
-                 pretrained=False, dropout=True):
+                 pretrained=False, dropout=True, conv_bias=True,
+                 linear_bias=True):
         super(Network, self).__init__()
         if backbone == "alexnet":
             model = AlexNet(num_classes, input_channel)
         elif backbone == "convNet":
             model = convNet()
         elif backbone == "vgg16":
-            model = VGG16(num_classes, input_channel, pretrained, dropout)
+            model = VGG16(num_classes, input_channel, pretrained, dropout,
+                          conv_bias, linear_bias)
         else:
             print("Need model")
             sys.exit(-1)
@@ -100,7 +102,7 @@ class VGG16(nn.Module):
     """Vgg16.
     """
     def __init__(self, num_classes, input_channel, pretrained=False,
-                 dropout=True):
+                 dropout=True, conv_bias=True, linear_bias=True):
         super(VGG16, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=pretrained)
         self.features = vgg16.features
@@ -108,8 +110,12 @@ class VGG16(nn.Module):
         self.fc = nn.Sequential(
             *list(vgg16.classifier.children())[:-1],
             nn.Linear(4096, num_classes))
-        if dropout is False:
+        if not dropout:
             self.remove_dropout()
+        if not conv_bias:
+            self.remove_conv_bias()
+        if not linear_bias:
+            self.remove_linear_bias()
 
     def forward(self, inputs):
         out = self.features(inputs)
@@ -124,6 +130,22 @@ class VGG16(nn.Module):
         for name, children in self.fc.named_children():
             if isinstance(children, nn.Dropout):
                 self.fc[int(name)] = Identity()
+
+    def remove_conv_bias(self):
+        """Remove bias for conv2d.
+        """
+        for name, param in self.features.named_children():
+            if "bias" in name:
+                param.bias.fill_(0)
+                param.requires_grad_(False)
+
+    def remove_linear_bias(self):
+        """Remove bias for linear.
+        """
+        for name, param in self.classifier.named_children():
+            if "bias" in name:
+                param.bias.fill_(0)
+                param.requires_grad_(False)
 
 
 class Identity(nn.Module):

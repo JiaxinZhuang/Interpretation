@@ -2,12 +2,15 @@ import os
 import logging
 import sys
 import copy
+from functools import wraps
+import time
 
 import resource
 
 import numpy as np
 import torch
 from PIL import Image
+
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
@@ -49,6 +52,18 @@ def init_logging(output_dir, exp):
     console.setLevel(logging.INFO)
     logging.getLogger("").addHandler(console)
     return logging
+
+
+def timethis(func, *args, **kwargs):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        ret = func(*args, **kwargs)
+        elapse = time.time() - start_time
+        print(">> Functoin: {} costs {:.4f}s".format(func.__name__, elapse))
+        sys.stdout.flush()
+        return ret
+    return wrapper
 
 
 def str2bool(val):
