@@ -72,7 +72,7 @@ def total_variation_v1(inputs, p=2):
     return loss
 
 
-@timethis
+# @timethis
 def total_variation_v2(inputs, p=2):
     """Total variantion from <Understandiong deep image representation by
     inverting them>, revised with conv2d, using matrix computation may be

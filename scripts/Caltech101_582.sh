@@ -10,12 +10,12 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=6 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=50000 \
-    --server=ls15 \
+    --server=ls16 \
     --eval_frequency=100 \
     --re_size=224 \
     --backbone=vgg16 \

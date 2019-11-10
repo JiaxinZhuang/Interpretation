@@ -139,11 +139,15 @@ class Config:
                                  help="whether to keep linear bias")
         self.parser.add_argument("--regularization", default="None", type=str,
                                  choices=["None", "L1", "L2",
-                                          "TotalVariation",
                                           "ClipNorm", "ClipContribution"],
                                  help="Use which regularization method to \
                                        reduce the complexity of processed \
                                        images")
+        self.parser.add_argument("--smoothing", default="TotalVariation",
+                                 type=str, help="smoothing op, \
+                                 default not to use.")
+        self.parser.add_argument("--delta", default=1, type=float,
+                                 help="coefficient for smoothing term.")
         self.parser.add_argument("--regular_ex", default=1, type=float,
                                  help="When using TotalVariation, exponential\
                                        for regularization.")
@@ -236,6 +240,8 @@ class Config:
         self.config["conv_bias"] = self.args.conv_bias
         self.config["linear_bias"] = self.args.linear_bias
         self.config["regularization"] = self.args.regularization
+        self.config["smoothing"] = self.args.smoothing
+        self.config["delta"] = self.args.delta
         self.config["regular_ex"] = self.args.regular_ex
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize

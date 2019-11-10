@@ -27,7 +27,7 @@ class FileterLoss(nn.Module):
     """
     def __init__(self, model, selected_layer, selected_filter, mode="keep",
                  inter=False, rho=0, regularization="None", p=None,
-                 _print=None):
+                 smoothing=False, _print=None):
         super(FileterLoss, self).__init__()
         self.model = model.model.features
         self.model.eval()
@@ -40,10 +40,11 @@ class FileterLoss(nn.Module):
         self.rho = rho
         # Use to interact different channels
         self.inter = inter
+        self._print = _print
         # Regularization
         self.regularize_op = self.get_regularize(regularization)
+        self.smothing_op = self.get_smoothing(smoothing)
         self.p = p
-        self._print = _print
 
     def hook_layer(self):
         """Hook layer.
@@ -92,7 +93,7 @@ class FileterLoss(nn.Module):
 
         selected_original_feature_map = \
             self.conv_output[:, self.selected_filter]
-        # Whe)ther to use interact to ignore some feature map
+        # Whether to use interact to ignore some feature map
         if self.inter:
             self._print("Inter")
             rest_processed_feature_map = \
@@ -124,7 +125,10 @@ class FileterLoss(nn.Module):
             sys.exit(-1)
 
         regularization_loss = self.regularize_op(processed_inputs, p=self.p)
-        return selected_filter_loss, rest_filter_loss, regularization_loss
+        smoothing_loss = self.smothing_op(processed_outputs, p=self.p)
+
+        return selected_filter_loss, rest_filter_loss, regularization_loss, \
+            smoothing_loss
 
     def interact(self, selected_feature_map, rest_processed_feature_map):
         """Interact between different channels.
@@ -159,16 +163,25 @@ class FileterLoss(nn.Module):
             regularize_op = l1_regularization
         elif regularization == "L2":
             regularize_op = l2_regularization
-        elif regularization == "TotalVariation":
-            regularize_op = total_variation_v2
         elif regularization == "ClipNorm":
             pass
         elif regularization == "ClipContribution":
             pass
         else:
-            print("Need legal regularization method!")
+            self._print("Need legal regularization method!")
             sys.exit(-1)
         return regularize_op
+
+    def get_smoothing(self, smoothing):
+        """Smoothing op.
+        """
+        smoothing_op = all2zero
+        if smoothing == "TotalVariation":
+            smoothing_op = total_variation_v2
+        else:
+            self._print("Need legal smoothing method!")
+            sys.exit(-1)
+        return smoothing_op
 
 
 def test_keep():
