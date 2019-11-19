@@ -10,7 +10,7 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=6 python -u src/trainer.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
     --inter=True \
     --rho=0 \
     --regularization=L2 \
-    --gamma=10 \
+    --gamma=1000 \
     --smoothing=TotalVariation \
     --regular_ex=2 \
     --delta=1 \

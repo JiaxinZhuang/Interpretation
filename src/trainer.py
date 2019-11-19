@@ -258,7 +258,7 @@ for epoch in range(n_epochs):
                       epoch)
     writer.add_scalar("Loss/regularization_loss", regularization_loss.item(),
                       epoch)
-    writer.add_scalar("Loss/smoothing_loss", regularization_loss.item(),
+    writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
                       epoch)
     train_loss = loss.item()
     if scheduler is not None:
@@ -268,6 +268,8 @@ for epoch in range(n_epochs):
     writer.add_scalar("Loss/total/", train_loss, epoch)
     _print("selected_fileter_loss: {:.4f}".format(selected_filter_loss.item()))
     _print("rest_fileter_loss: {:.4f}".format(rest_fileter_loss.item()))
+    _print("regularization_loss: {:.4f}".format(regularization_loss.item()))
+    _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
     _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
     if epoch % eval_frequency == 0:

@@ -10,7 +10,7 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=1 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/trainer.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
@@ -29,7 +29,7 @@ CUDA_VISIBLE_DEVICES=1 python -u src/trainer.py \
     --num_class=30 \
     --class_index=100 \
     --mode=keep \
-    --inter=False \
+    --inter=True \
     --regularization=L1 \
     --gamma=6e-2 \
     2>&1 | tee $log_file

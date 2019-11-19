@@ -10,7 +10,7 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/trainer.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
@@ -23,17 +23,17 @@ CUDA_VISIBLE_DEVICES=0 python -u src/trainer.py \
     --learning_rate=1e-1 \
     --alpha=100 \
     --beta=1 \
-    --selected_layer=25 \
-    --selected_filter=7 \
+    --selected_layer=10 \
+    --selected_filter=5 \
     --resume=011-161 \
     --num_class=30 \
     --class_index=100 \
     --mode=keep \
     --inter=True \
     --rho=0 \
-    --regularization=L2 \
-    --gamma=10 \
+    --regularization=L1 \
+    --gamma=1 \
     --smoothing=TotalVariation \
     --regular_ex=2 \
-    --delta=1 \
+    --delta=0 \
     2>&1 | tee $log_file

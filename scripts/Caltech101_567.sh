@@ -10,12 +10,12 @@ experiment_index=${experiment_index%%.*}
 dataset=Caltech101
 
 
-CUDA_VISIBLE_DEVICES=2 python -u src/trainer.py \
+CUDA_VISIBLE_DEVICES=7 python -u src/trainer.py \
     --experiment_index=$experiment_index \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=80000 \
-    --server=ls16 \
+    --server=ls15 \
     --eval_frequency=100 \
     --re_size=224 \
     --backbone=vgg16 \
@@ -29,7 +29,7 @@ CUDA_VISIBLE_DEVICES=2 python -u src/trainer.py \
     --num_class=30 \
     --class_index=100 \
     --mode=keep \
-    --inter=False \
+    --inter=True \
     --regularization=L1 \
     --gamma=4e-2 \
     2>&1 | tee $log_file

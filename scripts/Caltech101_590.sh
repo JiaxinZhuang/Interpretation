@@ -32,8 +32,8 @@ CUDA_VISIBLE_DEVICES=1 python -u src/trainer.py \
     --inter=True \
     --rho=0 \
     --regularization=L2 \
-    --gamma=1e-2 \
+    --gamma=100 \
     --smoothing=TotalVariation \
     --regular_ex=2 \
-    --delta=10 \
+    --delta=1 \
     2>&1 | tee $log_file

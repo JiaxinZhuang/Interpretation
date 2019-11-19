@@ -125,7 +125,7 @@ class FileterLoss(nn.Module):
             sys.exit(-1)
 
         regularization_loss = self.regularize_op(processed_inputs, p=self.p)
-        smoothing_loss = self.smothing_op(processed_outputs, p=self.p)
+        smoothing_loss = self.smothing_op(processed_inputs, p=self.p)
 
         return selected_filter_loss, rest_filter_loss, regularization_loss, \
             smoothing_loss
@@ -175,8 +175,9 @@ class FileterLoss(nn.Module):
     def get_smoothing(self, smoothing):
         """Smoothing op.
         """
-        smoothing_op = all2zero
-        if smoothing == "TotalVariation":
+        if smoothing == "None":
+            smoothing_op = all2zero
+        elif smoothing == "TotalVariation":
             smoothing_op = total_variation_v2
         else:
             self._print("Need legal smoothing method!")

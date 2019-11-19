@@ -143,10 +143,11 @@ class Config:
                                  help="Use which regularization method to \
                                        reduce the complexity of processed \
                                        images")
-        self.parser.add_argument("--smoothing", default="TotalVariation",
+        self.parser.add_argument("--smoothing", default="None",
+                                 choices=["None", "TotalVariation"],
                                  type=str, help="smoothing op, \
                                  default not to use.")
-        self.parser.add_argument("--delta", default=1, type=float,
+        self.parser.add_argument("--delta", default=0, type=float,
                                  help="coefficient for smoothing term.")
         self.parser.add_argument("--regular_ex", default=1, type=float,
                                  help="When using TotalVariation, exponential\
