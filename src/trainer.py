@@ -60,12 +60,13 @@ regular_ex = configs_dict["regular_ex"]
 gamma = configs_dict["gamma"]
 smoothing = configs_dict["smoothing"]
 delta = configs_dict["delta"]
+img_index = configs_dict["img_index"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-init_environment(seed=seed, cuda_id=cuda_id)
 _print = init_logging(log_dir, exp).info
 configs.print_config(_print)
+init_environment(seed=seed, cuda_id=cuda_id, _print=_print)
 tf_log = os.path.join(log_dir, exp)
 writer = SummaryWriter(log_dir=tf_log)
 generated_dir = os.path.join(generated_dir, exp)
@@ -166,10 +167,17 @@ trainset.set_data(class_index, num_class)
 images = []
 labels = []
 imgs_path = []
+
 for img, label, img_path in trainset:
     images.append(img.unsqueeze(0))
     labels.append(label)
     imgs_path.append(img_path)
+# When single images used, batch_size has to be one
+if batch_size == 1:
+    _print("Used single image mode.")
+    images = [images[img_index]]
+    label = [labels[img_index]]
+    imgs_path = [imgs_path[img_index]]
 
 original_images = torch.cat(images, dim=0).to(device)
 processed_images = original_images.clone().detach().requires_grad_(True)

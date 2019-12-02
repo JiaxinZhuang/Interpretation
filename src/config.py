@@ -152,6 +152,9 @@ class Config:
         self.parser.add_argument("--regular_ex", default=1, type=float,
                                  help="When using TotalVariation, exponential\
                                        for regularization.")
+        self.parser.add_argument("--img_index", default=0, type=int,
+                                 help="Img index to use. Batch_size has to be\
+                                 1 when to be used.")
         # self.parser.add_argument('--normalize', default=True, type=str2bool,
         #                          help='128, 256, 512, 1024, 2048')
         # self.parser.add_argument('--margin', default=0.2, type=float,
@@ -244,6 +247,7 @@ class Config:
         self.config["smoothing"] = self.args.smoothing
         self.config["delta"] = self.args.delta
         self.config["regular_ex"] = self.args.regular_ex
+        self.config["img_index"] = self.args.img_index
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize
         # self.config['margin'] = self.args.margin

@@ -19,24 +19,26 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
 sys.path.append("./src/utils")
 
 
-def init_environment(seed=0, cuda_id=0):
+def init_environment(seed=0, cuda_id=0, _print=None):
     """Init environment
     initialize environment including cuda, benchmark, random seed, saved model
     directory and saved logs directory
     """
-    print(">< init_environment with seed: {}".format(seed))
+    _print(">< init_environment with seed: {}".format(seed))
 
     cuda_id = str(cuda_id)
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_id
 
     if seed != -1:
-        print("> Use seed -{}".format(seed))
+        _print("> Use seed -{}".format(seed))
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
         torch.manual_seed(seed)
         np.random.seed(seed)
     else:
-        print("> Don't use seed")
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        _print("> Don't use seed")
 
 
 def init_logging(output_dir, exp):

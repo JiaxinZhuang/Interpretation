@@ -2,3 +2,6 @@ sklearn
 tqdm
 torchsummary
 tb-nightly
+matplotlib
+pandas
+seaborn
