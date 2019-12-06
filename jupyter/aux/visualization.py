@@ -2,6 +2,7 @@
 """
 
 
+import os
 import copy
 import math
 from matplotlib import pyplot as plt
@@ -60,12 +61,14 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
                          fontdict=font)
             index += 1
     # show figure
-    fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
-                 verticalalignment="bottom")
+    # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
+    #              verticalalignment="bottom")
     # plt.tight_layout()
-#    file_name = os.path.join(save_dict["save_dir"], "Layer-{}-Image-{}.pdf".\
-#    format(layer_index, save_dict["image_name"]))
-#    plt.savefig(file_name)
+    file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
+                             format(layer_index, save_dict["index2image"]
+                                    [img_index]))
+    plt.savefig(file_name)
+    print("Successfully Save pdf to {}".format(file_name))
     plt.show()
 
 
