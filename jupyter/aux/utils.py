@@ -98,22 +98,51 @@ def obtain_features_map(image, model, conv_output_indexes=None):
     return conv_output
 
 
-def load_imgs(ab_path: str, imgs_path: list):
+def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
     """Load imgs.
     Args:
         ab_path: path to saved generated images.
         imgs_path: list, containing many unrelative prefix path.
+        non_exists_ok: Boolean, imgs_path may not exist in ab_path, True is to
+                       allow such situation.
     """
+    existed_imgs = os.listdir(ab_path)
     out = []
+    valid_imgs_path = []
+    valid_imgs_index = []
     for img_path in imgs_path:
         file_name = img_path.split("/")[-1]
+        if non_exists_ok and file_name not in existed_imgs:
+            valid_imgs_index.append(0)
+            print("Skip {}".format(img_path))
+            continue
         file_path = os.path.join(ab_path, file_name)
         print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0
         out.append(img)
+        valid_imgs_index.append(1)
+        valid_imgs_path.append(img_path)
     out = np.array(out)
-    return out
+    return out, valid_imgs_path, valid_imgs_index
+
+
+def extract_valid(images: list, labels: list, valid_imgs_index: list):
+    """Extract valid paths.
+    Args:
+        valid_imgs_path: list
+    Return:
+        images: list
+        labels: list
+    """
+    valid_images = []
+    valid_labels = []
+
+    for img, label, valid_img_index in zip(images, labels, valid_imgs_index):
+        if valid_img_index:
+            valid_images.append(img)
+            valid_labels.append(label)
+    return valid_images, valid_labels
 
 
 def zscore(optimized_data, mean, std):

@@ -175,7 +175,7 @@ class Config:
         #                          help="metric function used for \
         #                          pairwise_distance, l2 or cos")
         self.parser.add_argument("--server", default="local", type=str,
-                                 choices=["local", "ls15", "ls16"],
+                                 choices=["local", "ls15", "ls16", "ls31"],
                                  help="server to run the code")
         # self.parser.add_argument("--bilinear", default=True, type=str2bool,
         #                          help="use bilinear within model")
@@ -274,26 +274,15 @@ class Config:
     def _path_suitable_for_server(self):
         """Path suitable for server
         """
-        if self.config["server"] == "desktop":
-            self.config["log_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/logdirs"
-            self.config["model_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/models"
-            self.config["generated_dir"] = "/home/lincolnzjx/Desktop/Interpretation/saved/generated"
         if self.config["server"] == "local":
             self.config["log_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/logdirs"
             self.config["model_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/models"
             self.config["generated_dir"] = "/media/lincolnzjx/Disk21/Interpretation/saved/generated"
-        elif self.config["server"] == "ls15":
-            self.config["log_dir"] = "/data15/jiaxin/Interpretation/saved/logdirs"
-            self.config["model_dir"] = "/data15/jiaxin/Interpretation/saved/models"
-            self.config["generated_dir"] = "/data15/jiaxin/Interpretation/saved/generated"
-        elif self.config["server"] == "ls16":
-            self.config["log_dir"] = "/data16/jiaxin/Interpretation/saved/logdirs"
-            self.config["model_dir"] = "/data16/jiaxin/Interpretation/saved/models"
-            self.config["generated_dir"] = "/data16/jiaxin/Interpretation/saved/generated"
-        elif self.config["server"] == "lab_center":
-            self.config["log_dir"] = "/home/jiaxin/Interpretation/saved/logdirs"
-            self.config["model_dir"] = "/home/jiaxin/Interpretation/saved/models"
-            self.config["generated_dir"] = "/home/jiaxin/Interpretation/saved/generated"
+        elif self.config["server"] in ["desktop", "ls15", "ls16", "ls31",
+                                       "lab_center"]:
+            self.config["log_dir"] = "./saved/logdirs"
+            self.config["model_dir"] = "./saved/models"
+            self.config["generated_dir"] = "./saved/generated"
         else:
             print("Illegal server configuration")
             sys.exit(-1)

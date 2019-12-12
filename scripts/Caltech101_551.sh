@@ -23,6 +23,7 @@ CUDA_VISIBLE_DEVICES=4 python -u src/trainer.py \
     --learning_rate=1e-1 \
     --alpha=100 \
     --beta=1 \
+    --gamma=1e-2 \
     --selected_layer=25 \
     --selected_filter=7 \
     --resume=011-161 \
@@ -32,5 +33,4 @@ CUDA_VISIBLE_DEVICES=4 python -u src/trainer.py \
     --inter=True \
     --rho=0 \
     --regularization=L1 \
-    --gamma=1e-2 \
     2>&1 | tee $log_file

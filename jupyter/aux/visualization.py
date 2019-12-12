@@ -14,11 +14,12 @@ import numpy as np
 from .utils import cat_img_horizontal
 
 
-def visualize_features_map(img_index: int, layer_index: int, features_map,
-                           opt_feature_map, cols=4,
-                           conv_output_index_dict=None,
-                           save_dict=None):
-    """Visulize feature map.
+def visualize_features_map_for_comparision(img_index: int, layer_index:
+                                           int, features_map,
+                                           opt_feature_map, cols=4,
+                                           conv_output_index_dict=None,
+                                           save_dict=None):
+    """Visulize feature map for comparision!!
     Args:
         img_index:
         layer_index: absolute layer index start from 0
@@ -69,6 +70,57 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
                                     [img_index]))
     plt.savefig(file_name)
     print("Successfully Save pdf to {}".format(file_name))
+    plt.show()
+
+
+def visualize_features_map(img_index: int, layer_index: int, features_map,
+                           cols=8, conv_output_index_dict=None,
+                           save_dict=None, is_save=False):
+    """Visualize feature map.
+    Args:
+        img_index:
+        layer_index: absolute layer index start from 0
+    """
+    list_index = conv_output_index_dict[layer_index]
+    features_map = copy.deepcopy(features_map)[list_index]
+    features_map = features_map.transpose((0, 2, 3, 1))
+    n_filters = features_map.shape[-1]
+    rows = math.ceil(n_filters / cols)
+
+    fig = plt.figure(constrained_layout=True)
+    fig_width = 8+1
+    fig_height = int(rows*0.9)
+    fig = plt.figure(constrained_layout=False, figsize=(fig_width, fig_height))
+    gs = GridSpec(rows, cols, figure=fig)
+    gs.update(wspace=0.025, hspace=0.1)
+
+    font = {'family': 'normal', 'size': 4}
+    width = height = 224
+    index = 0
+    for row in range(0, rows):
+        for col in range(0, cols):
+            # specify subplot and turn off axis
+            ax = fig.add_subplot(gs[row, col: col+1])
+            ax.set_xticks([])
+            ax.set_yticks([])
+            # plot feature maps in grayscale
+            img = Image.fromarray(features_map[img_index, :, :, index]).\
+                resize((width, height), PIL.Image.BICUBIC)
+            cat_img_np = np.array(img)
+            plt.imshow(cat_img_np, cmap="gray")
+            ax.set_title("{}.".format(index), loc="center", pad=1.0,
+                         fontdict=font)
+            index += 1
+    # show figure
+    # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
+    #              verticalalignment="bottom")
+    # plt.tight_layout()
+    if is_save:
+        file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
+                                 format(layer_index, save_dict["index2image"]
+                                        [img_index]))
+        plt.savefig(file_name)
+        print("Successfully Save pdf to {}".format(file_name))
     plt.show()
 
 
