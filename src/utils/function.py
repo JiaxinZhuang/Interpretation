@@ -31,7 +31,14 @@ def init_environment(seed=0, cuda_id=0, _print=None):
 
     if seed != -1:
         _print("> Use seed -{}".format(seed))
+        # Determnistic mode would get determinitic algorithm for conv
+        # Ref: https://zhuanlan.zhihu.com/p/39752167
         torch.backends.cudnn.deterministic = True
+        # benchmark mode would look for the optimial set of algorithms for the
+        # parriclar configuaration, which usually leads to faster runtime.
+        # Input size should not vary every iteration, and conputation graph is
+        # unchange.
+        # Ref: https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936/2
         torch.backends.cudnn.benchmark = False
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -165,7 +172,7 @@ def save_image(im, path):
     im.save(path)
 
 
-def recreate_image(im_as_var, reverse_mean, reverse_std):
+def recreate_image(im_as_var, reverse_mean, reverse_std, rescale=False):
     """Recreate images from a torch variable, sort of reverse preprocessing.
 
     Args:
@@ -179,11 +186,28 @@ def recreate_image(im_as_var, reverse_mean, reverse_std):
     for channel in range(channels):
         recreate_im[channel] /= reverse_std[channel]
         recreate_im[channel] -= reverse_mean[channel]
-    recreate_im[recreate_im > 1] = 1
-    recreate_im[recreate_im < 0] = 0
+
+    if rescale:
+        recreate_im = _rescale(recreate_im)
+    else:
+        recreate_im[recreate_im > 1] = 1
+        recreate_im[recreate_im < 0] = 0
+
     recreate_im = np.round(recreate_im * 255)
 
     recreate_im = np.uint8(recreate_im).transpose(1, 2, 0)
+    return recreate_im
+
+
+def _rescale(recreate_im):
+    """Rescale images to 0-1 from a more wide range.
+    Args:
+        recreate_im: [channels, height, width]
+    Returns:
+        recreate_im: [channels, height, width]
+    """
+    recreate_im = recreate_im - np.amin(recreate_im)
+    recreate_im = recreate_im / np.amax(recreate_im)
     return recreate_im
 
 

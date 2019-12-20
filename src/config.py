@@ -155,42 +155,12 @@ class Config:
         self.parser.add_argument("--img_index", default=0, type=int,
                                  help="Img index to use. Batch_size has to be\
                                  1 when to be used.")
-        # self.parser.add_argument('--normalize', default=True, type=str2bool,
-        #                          help='128, 256, 512, 1024, 2048')
-        # self.parser.add_argument('--margin', default=0.2, type=float,
-        #                          help='margin for triplet loss')
-        # self.parser.add_argument('--K', default=3, type=int,
-        #                          help="postive dot for training triplets")
-        # self.parser.add_argument('--M', default=3, type=int,
-        #                          help='negative dot for testing triplets')
-        # self.parser.add_argument('--k_predict', default=3, type=int,
-        #                          help='k used for predict phase')
-        # self.parser.add_argument('--batch_n_classes', default=10, type=int,
-        #                          help='depend on your dataset')
-        # self.parser.add_argument('--batch_n_class_num', default=20, type=int,
-        #                          help='depend on your dataset, \
-        #                          number for each class per batch')
-        # self.parser.add_argument("--metric_function", default="l2",
-        #                          type=str,\
-        #                          help="metric function used for \
-        #                          pairwise_distance, l2 or cos")
         self.parser.add_argument("--server", default="local", type=str,
-                                 choices=["local", "ls15", "ls16", "ls31"],
+                                 choices=["local", "ls15", "ls16", "ls31",
+                                          "ls97"],
                                  help="server to run the code")
-        # self.parser.add_argument("--bilinear", default=True, type=str2bool,
-        #                          help="use bilinear within model")
-        # self.parser.add_argument("--finetune", default="", type=str,
-        #                          help=" \"\" or 2001\"40")
-        # self.parser.add_argument("--freeze", default=True, type=str2bool,
-        #                          help="freeze embedding parameter when ")
-        # self.parser.add_argument("--save_memory", default=False,
-        #                          type=str2bool,
-        #                          help="Save memory when calculate \
-        #                                pairdistance ")
-        # self.parser.add_argument("--triplet_method", default="batch_all",
-        #                          type=str, help="batch_all, batch_hard")
-        # self.parser.add_argument("--use_sampler", default=False,
-        #                          type=str2bool, help="False or True")
+        self.parser.add_argument("--rescale", type=str2bool, default=False,
+                                 help="whether to rescale for recreate images.")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -248,6 +218,7 @@ class Config:
         self.config["delta"] = self.args.delta
         self.config["regular_ex"] = self.args.regular_ex
         self.config["img_index"] = self.args.img_index
+        self.config["rescale"] = self.args.rescale
         # self.config['embedding_len'] = self.args.embedding_len
         # self.config["normalize"] = self.args.normalize
         # self.config['margin'] = self.args.margin
@@ -279,7 +250,7 @@ class Config:
             self.config["model_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/models"
             self.config["generated_dir"] = "/media/lincolnzjx/Disk21/Interpretation/saved/generated"
         elif self.config["server"] in ["desktop", "ls15", "ls16", "ls31",
-                                       "lab_center"]:
+                                       "ls97", "lab_center"]:
             self.config["log_dir"] = "./saved/logdirs"
             self.config["model_dir"] = "./saved/models"
             self.config["generated_dir"] = "./saved/generated"
