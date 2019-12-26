@@ -20,6 +20,7 @@ from utils.function import init_logging, init_environment, recreate_image, \
         get_lr, save_image, dataname_2_save, get_grad_norm, timethis
 # preprocess_image
 
+from datasets import imagenet
 import config
 import dataset
 import model
@@ -158,7 +159,32 @@ def main():
         #                             transform=test_transform)
         num_classes = 101
         # input_channel = 3
-
+    elif dataset_name == "ImageNet":
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
+        reverse_mean = [-0.485, -0.456, -0.406]
+        reverse_std = [1/0.229, 1/0.224, 1/0.225]
+        train_transform = transforms.Compose([
+            transforms.Resize((re_size, re_size),
+                              interpolation=Image.BILINEAR),
+            # transforms.RandomCrop(input_size),
+            # transforms.RandomHorizontalFlip(),
+            # transforms.ColorJitter(brightness=0.4, saturation=0.4, hue=0.4),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+        # test_transform = transforms.Compose([
+        #     transforms.Resize((re_size, re_size),
+        #                       interpolation=Image.BILINEAR),
+        #     transforms.CenterCrop(input_size),
+        #     transforms.ToTensor(),
+        #     transforms.Normalize(mean, std)
+        # ])
+        trainset = imagenet.ImageNet(root="./data/", is_train=True,
+                                     transform=train_transform)
+        # valset = imagenet.ImageNet(root="./data/", is_train=False,
+        #                            transform=test_transform)
+        num_classes = 1000
     else:
         _print("Need dataset")
         sys.exit(-1)

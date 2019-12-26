@@ -272,5 +272,16 @@ def _test_dataname2save():
     print(output_name)
 
 
+def freeze_model(net, _print=None):
+    """Freeze model.
+    """
+    for param in net.parameters():
+        param.requires_grad = False
+
+    for name, param in net.named_parameters():
+        _print("Name:{}, Required Grad: {}".format(name, param.requires_grad))
+    return net
+
+
 if __name__ == "__main__":
     _test_dataname2save()

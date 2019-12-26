@@ -43,7 +43,7 @@ class Config:
                                  help="num_workers of dataloader")
         self.parser.add_argument('--dataset', default="Caltech101", type=str,
                                  choices=["CUB", "TinyImageNet", "stl10",
-                                          "mnist", "Caltech101"],
+                                          "mnist", "Caltech101", "ImageNet"],
                                  help="dataset name")
         # log related
         self.parser.add_argument('--log_dir', default="./saved/logdirs/",
@@ -157,10 +157,14 @@ class Config:
                                  1 when to be used.")
         self.parser.add_argument("--server", default="local", type=str,
                                  choices=["local", "ls15", "ls16", "ls31",
-                                          "ls97"],
+                                          "ls97", "desktop"],
                                  help="server to run the code")
         self.parser.add_argument("--rescale", type=str2bool, default=False,
-                                 help="whether to rescale for recreate images.")
+                                 help="whether to rescale for recreate \
+                                 images.")
+        self.parser.add_argument("--freeze", type=str2bool, default=False,
+                                 help="freeze parameter when training \
+                                 beseline.")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -231,7 +235,7 @@ class Config:
         self.config["server"] = self.args.server
         # self.config["bilinear"] = self.args.bilinear
         # self.config["finetune"] = self.args.finetune
-        # self.config["freeze"] = self.args.freeze
+        self.config["freeze"] = self.args.freeze
         # self.config["save_memory"] = self.args.save_memory
         # self.config["triplet_method"] = self.args.triplet_method
 
@@ -245,12 +249,8 @@ class Config:
     def _path_suitable_for_server(self):
         """Path suitable for server
         """
-        if self.config["server"] == "local":
-            self.config["log_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/logdirs"
-            self.config["model_dir"] = "/media/lincolnzjx/Disk21/interpretation/saved/models"
-            self.config["generated_dir"] = "/media/lincolnzjx/Disk21/Interpretation/saved/generated"
-        elif self.config["server"] in ["desktop", "ls15", "ls16", "ls31",
-                                       "ls97", "lab_center"]:
+        if self.config["server"] in ["desktop", "ls15", "ls16", "ls31",
+                                     "ls97", "lab_center"]:
             self.config["log_dir"] = "./saved/logdirs"
             self.config["model_dir"] = "./saved/models"
             self.config["generated_dir"] = "./saved/generated"

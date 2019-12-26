@@ -252,6 +252,7 @@ class Caltech101(Dataset):
         self.root = os.path.join(root, "Caltech101")
         self.is_train = is_train
         self.transform = transform
+        self._print = _print
 
         self.imgs_path, self.targets = self.read_path()
         self.classes = list(set(self.targets))
@@ -264,7 +265,6 @@ class Caltech101(Dataset):
 
         self.data_sample = []
         self.labels_sample = []
-        self._print = _print
 
     def __getitem__(self, index):
         if len(self.data_sample) and len(self.labels_sample):
@@ -337,6 +337,10 @@ class Caltech101(Dataset):
         return imgs_path, targets
 
 
+# class ImageNet(Dataset):
+#     """ImageNet reader."""
+
+
 def test_caltech101():
     """Test caltech101.
     """
@@ -386,6 +390,13 @@ def test_mnist():
     # results: 1 per 100 images
     ds.set_data([1], 100)
     print_dataset(ds, 50)
+
+
+# TODO
+def test_ImageNet():
+    """Test ImageNet.
+    """
+    pass
 
 
 if __name__ == "__main__":

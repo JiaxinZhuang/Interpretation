@@ -103,13 +103,20 @@ class VGG16(nn.Module):
     """
     def __init__(self, num_classes, input_channel, pretrained=False,
                  dropout=True, conv_bias=True, linear_bias=True):
+        """INit.
+            if num_classes is 1000, use all original model.
+        """
         super(VGG16, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=pretrained)
         self.features = vgg16.features
         self.avgpool = vgg16.avgpool
-        self.fc = nn.Sequential(
-            *list(vgg16.classifier.children())[:-1],
-            nn.Linear(4096, num_classes))
+        if num_classes == 1000:
+            print("> Use original fc")
+            self.fc = vgg16.classifier
+        else:
+            self.fc = nn.Sequential(
+                *list(vgg16.classifier.children())[:-1],
+                nn.Linear(4096, num_classes))
         if not dropout:
             self.remove_dropout()
         if not conv_bias:
