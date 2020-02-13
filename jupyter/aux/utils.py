@@ -100,7 +100,7 @@ def obtain_features_map(image, model, layer_output_indexes=None):
 
             layer_min = np.min(out_np)
             layer_max = np.max(out_np)
-            layer_max_min.append([layer_min, layer_max])
+            layer_max_min.append([layer_max, layer_min])
             print("Index:{}, {}".format(index, layer))
             print(np.min(out_np), np.max(out_np))
     return layer_output, layer_max_min

@@ -77,14 +77,15 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
 def visualize_features_map(img_index: int, layer_index: int, features_map,
                            cols=8, conv_output_index_dict=None,
                            save_dict=None, is_save=False,
-                           save_original=False, plt_mode="real", top_k=10):
+                           save_original=False, plt_mode="real", top_k=10,
+                           layer_max_min=None):
     """Visualize feature map.
     Args:
         img_index:
         layer_index: absolute layer index start from 0
         is_save: save figures to pdf
         save_original: save imgs under a directory.
-        plt_mode: real, scale
+        plt_mode: real, img_scale, imgs_scale
     """
     print("Plot mode is => {}".format(plt_mode))
     list_index = conv_output_index_dict[layer_index]
@@ -102,8 +103,11 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
 
     font = {'family': 'normal', 'size': 4}
     width = height = 224
+
     index = 0
     max_values = {}
+    layer_max = np.max(features_map[img_index, :, :, :])
+    layer_min = np.min(features_map[img_index, :, :, :])
     for row in range(0, rows):
         for col in range(0, cols):
             # specify subplot and turn off axis
@@ -114,21 +118,26 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
             img = Image.fromarray(features_map[img_index, :, :, index]).\
                 resize((width, height), PIL.Image.BICUBIC)
             cat_img_np = np.array(img)
-            # print("Max: {} Min:{}".format(np.max(cat_img_np), np.min(cat_img_np)))
-            if plt_mode == "real":
-                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
-            else:
-                sys.exit(-1)
             max_pixel = np.max(cat_img_np)
             min_pixel = np.min(cat_img_np)
             max_values[index] = max_pixel
+
+            if plt_mode == "real":
+                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+            elif plt_mode == "img_scale":
+                cat_img_np = (cat_img_np - layer_min) / (layer_max - layer_min) * 255
+                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+            elif plt_mode == "imgs_scale":
+                cat_img_np = (cat_img_np - layer_max_min[list_index][1]) / \
+                    (layer_max_min[list_index][0] - layer_max_min[list_index][1]) * 255
+                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+            else:
+                sys.exit(-1)
             ax.set_title("{}--[{:.1f}~{:.1f}]".format(index, min_pixel,
                                                       max_pixel),
                          loc="center", pad=1.0, fontdict=font)
             index += 1
     # show figure
-    layer_max = np.max(features_map[img_index, :, :, :])
-    layer_min = np.min(features_map[img_index, :, :, :])
     top_k_key = heapq.nlargest(top_k, max_values, key=max_values.get)
     print("Top-k => {}".format(top_k_key))
     fig.suptitle("Image-{}-Layer-{}--[{:.1f}-{:.1f}]".format(img_index,
