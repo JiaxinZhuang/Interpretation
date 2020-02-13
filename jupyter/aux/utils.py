@@ -80,22 +80,29 @@ def plot_bias_asawhole(net):
     plt.legend(fontsize="xx-small")
 
 
-def obtain_features_map(image, model, conv_output_indexes=None):
+def obtain_features_map(image, model, layer_output_indexes=None):
     """Obtain feature map
     Args:
         image: [batch_size, n_channels, height, width]
         model: net
-        conv_output_indexes: list, contains selected indedx for layer.
+        layer_output_indexes: list, contains selected indedx for layer.
     Return:
     """
-    conv_output = []
+    layer_output = []
+    layer_max_min = []
     out = image
     for index, layer in enumerate(model):
         out = layer(out)
-        if index in conv_output_indexes:
-            conv_output.append(out.cpu().detach().numpy())
-            # print(index, out.size())
-    return conv_output
+        if index in layer_output_indexes:
+            out_np = out.cpu().detach().numpy()
+            layer_output.append(out_np)
+
+            layer_min = np.min(out_np)
+            layer_max = np.max(out_np)
+            layer_output.append([layer_min, layer_max])
+            print("Index:{}, {}".format(index, layer))
+            print(np.min(out_np), np.max(out_np))
+    return layer_output, layer_max_min
 
 
 def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):

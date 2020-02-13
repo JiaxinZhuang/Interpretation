@@ -10,20 +10,20 @@ experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
 n_epochs=50000
-server=ls97
-selected_filter=318
-selected_layer=25
-class_index=100
-num_class=39
+server=ls16
+selected_filter=16
+selected_layer=1
+class_index=318
+num_class=100
 # -------------------------------
 # Variables
-cuda_visible_devices=4
+cuda_visible_devices=0
 alpha=100
 beta=1
 gamma=1
 delta=0
 img_index=0
-batch_size=1
+# batch_size=100
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --experiment_index=$experiment_index \
@@ -42,7 +42,7 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --selected_layer=$selected_layer \
     --selected_filter=$selected_filter \
-    --resume=011-161 \
+    --resume=037-0 \
     --num_class=$num_class \
     --class_index=$class_index \
     --mode=keep \
@@ -51,7 +51,7 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --regularization=L1 \
     --smoothing=TotalVariation \
     --regular_ex=2 \
-    --batch_size=$batch_size \
     --img_index=$img_index \
     --rescale=False \
     2>&1 | tee $log_file
+    # --batch_size=$batch_size \

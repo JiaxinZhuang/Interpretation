@@ -3,7 +3,7 @@
 
 import torch
 import torch.nn.functional as F
-from function import timethis
+from .function import timethis
 
 
 def all2zero(inputs, p=None):
