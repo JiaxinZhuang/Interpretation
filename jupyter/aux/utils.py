@@ -93,13 +93,14 @@ def obtain_features_map(image, model, layer_output_indexes=None):
     out = image
     for index, layer in enumerate(model):
         out = layer(out)
+        print(index, layer, out.size())
         if index in layer_output_indexes:
             out_np = out.cpu().detach().numpy()
             layer_output.append(out_np)
 
             layer_min = np.min(out_np)
             layer_max = np.max(out_np)
-            layer_output.append([layer_min, layer_max])
+            layer_max_min.append([layer_min, layer_max])
             print("Index:{}, {}".format(index, layer))
             print(np.min(out_np), np.max(out_np))
     return layer_output, layer_max_min
