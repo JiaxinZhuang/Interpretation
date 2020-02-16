@@ -19,12 +19,15 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            int, features_map,
                                            opt_feature_map, cols=4,
                                            conv_output_index_dict=None,
-                                           save_dict=None):
+                                           save_dict=None, plt_mode="real",
+                                           top_k=10, layer_max_min=None):
     """Visulize feature map for comparision!!
     Args:
         img_index:
         layer_index: absolute layer index start from 0
+        plt_mode: real, img_scale, imgs_scale
     """
+    print("Plot mode is => {}".format(plt_mode))
     list_index = conv_output_index_dict[layer_index]
     features_map = copy.deepcopy(features_map)[list_index]
     opt_features_map = copy.deepcopy(opt_feature_map)[list_index]
@@ -44,6 +47,8 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
     font = {'family': 'normal', 'size': 4}
     width = height = 224
     index = 0
+    layer_max = np.max(features_map[img_index, :, :, :])
+    layer_min = np.min(features_map[img_index, :, :, :])
     for row in range(0, rows):
         for col in range(0, cols):
             # specify subplot and turn off axis
@@ -58,10 +63,33 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                 resize((width, height), PIL.Image.BICUBIC)
             cat_img = cat_img_horizontal(img, opt_img)
             cat_img_np = np.array(cat_img)
-            plt.imshow(cat_img_np, cmap="gray")
-            ax.set_title("{}.".format(index), loc="center", pad=1.0,
-                         fontdict=font)
+            max_pixel = np.max(cat_img_np)
+            min_pixel = np.min(cat_img_np)
+
+            if plt_mode == "real":
+                plt_show(cat_img_np, plt_mode=plt_mode)
+            elif plt_mode == "img_scale":
+                pixel_max = layer_max
+                pixel_min = layer_min
+                plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
+                         pixel_min=pixel_min)
+            elif plt_mode == "imgs_scale":
+                print("TODO")
+                sys.exit(-1)
+                # pixel_max = layer_max_min[list_index][1]
+                # pixel_min = layer_max_min[list_index][0]
+                # plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
+                #          pixel_min=pixel_min)
+            else:
+                sys.exit(-1)
+
+            # ax.set_title("{}.".format(index), loc="center", pad=1.0,
+            #              fontdict=font)
             index += 1
+
+            ax.set_title("{}--GT-[{:.1f}~{:.1f}]".format(index, min_pixel,
+                                                      max_pixel),
+                         loc="center", pad=1.0, fontdict=font)
     # show figure
     # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
     #              verticalalignment="bottom")
@@ -123,14 +151,17 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
             max_values[index] = max_pixel
 
             if plt_mode == "real":
-                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+                plt_show(cat_img_np, plt_mode=plt_mode)
             elif plt_mode == "img_scale":
-                cat_img_np = (cat_img_np - layer_min) / (layer_max - layer_min) * 255
-                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+                pixel_max = layer_max
+                pixel_min = layer_min
+                plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
+                         pixel_min=pixel_min)
             elif plt_mode == "imgs_scale":
-                cat_img_np = (cat_img_np - layer_max_min[list_index][1]) / \
-                    (layer_max_min[list_index][0] - layer_max_min[list_index][1]) * 255
-                plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+                pixel_max = layer_max_min[list_index][0]
+                pixel_min = layer_max_min[list_index][1]
+                plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
+                         pixel_min=pixel_min)
             else:
                 sys.exit(-1)
             ax.set_title("{}--[{:.1f}~{:.1f}]".format(index, min_pixel,
@@ -194,3 +225,20 @@ def visualize_filters(filters, n_filters, n_channels):
             index += 1
     # show the figure
     plt.show()
+
+
+def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None):
+    """Plt under the plt mode.
+    Args:
+        plt_mode: [real, img_scale, imgs_scale]
+    """
+    if plt_mode == "real":
+        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+    elif plt_mode == "img_scale":
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+    elif plt_mode == "imgs_scale":
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+    else:
+        sys.exit(-1)
