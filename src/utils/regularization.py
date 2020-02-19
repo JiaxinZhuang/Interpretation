@@ -13,16 +13,19 @@ def all2zero(inputs, p=None):
 
 
 def l1_regularization(inputs, p=None):
-    """Regularize inputs with L1.
+    """Regularize inputs with L1 over all pixels.
     """
-    loss = torch.mean(torch.norm(inputs, p=1, dim=(1, 2, 3)))
+    # loss = torch.mean(torch.norm(inputs, p=1, dim=(1, 2, 3)))
+    loss = torch.mean(inputs)
     return loss
 
 
 def l2_regularization(inputs, p=None):
-    """Regularize inputs with L1.
+    """Regularize inputs with L1 over all pixels.
     """
-    loss = torch.mean(torch.norm(inputs, p=2, dim=(1, 2, 3)))
+    # loss = torch.mean(torch.norm(inputs, p=2, dim=(1, 2, 3)))
+    *_, heigh, width = inputs.size()
+    loss = torch.mean(torch.norm(inputs, p=2, dim=(2, 3))/(heigh*width))
     return loss
 
 

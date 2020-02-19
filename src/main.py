@@ -4,6 +4,7 @@ import random
 import shutil
 import time
 import warnings
+import sys
 
 import torch
 import torch.nn as nn
@@ -18,13 +19,18 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from torch.utils.tensorboard import SummaryWriter
+
+from utils.function import str2bool, get_lr
+from model import replace_layer
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR',
-                    help='path to dataset')
+# parser.add_argument('data', metavar='DIR',
+#                     help='path to dataset')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -73,6 +79,16 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
+
+parser.add_argument('--replace-maxpool', default=False, type=str2bool,
+                    help='replace maxpool with average pool.')
+parser.add_argument('--replace-relu', default=False, type=str2bool,
+                    help='replace relu with LeakyReLU.')
+parser.add_argument('--experiment-index', default=None, type=int,
+                    help='exp index')
+parser.add_argument("--server", default="ls15", type=str,
+                    help="server to use.")
+
 
 best_acc1 = 0
 
@@ -135,6 +151,13 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
+    # Replace layer
+    keys = []
+    if args.replace_maxpool:
+        keys.append("AVG")
+    if args.replace_relu:
+        keys.append("LEAK")
+    model = replace_layer(model, keys=keys)
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -197,8 +220,18 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'val')
+    if args.server == "ls15":
+        data_dir = "/data15/jiaxin/Interpretation/data/ilsvrc2012"
+    elif args.server == "ls16":
+        data_dir = "/data16/jiaxin/Interpretation/data/ilsvrc2012"
+    elif args.server == "ls97":
+        data_dir = "/data/jiaxin/Interpretation/data/ilsvrc2012"
+    else:
+        print("Need legal server.")
+        sys.exit(-1)
+
+    traindir = os.path.join(data_dir, 'train')
+    valdir = os.path.join(data_dir, 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
@@ -234,20 +267,37 @@ def main_worker(gpu, ngpus_per_node, args):
         validate(val_loader, model, criterion, args)
         return
 
+    # tensorboard & model
+    exp = str(args.experiment_index)
+    tf_log = os.path.join("./saved/logdirs", exp)
+    model_dir = os.path.join("./saved/models", exp)
+    writer = SummaryWriter(log_dir=tf_log)
+
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
+        train_loss, train_acc1, train_acc5 =  \
+            train(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        val_loss, val_acc1, val_acc5 = \
+            validate(val_loader, model, criterion, args)
+
+        # Add statistics into tensorboard
+        writer.add_scalar("Loss/Train", train_loss, epoch)
+        writer.add_scalar("Loss/Val", val_loss, epoch)
+        writer.add_scalar("Acc/train_acc1", train_acc1, epoch)
+        writer.add_scalar("Acc/train_acc5", train_acc5, epoch)
+        writer.add_scalar("Acc/val_acc1", val_acc1, epoch)
+        writer.add_scalar("Acc/val_acc5",  val_acc5, epoch)
+        writer.add_scalar("Lr",  get_lr(optimizer), epoch)
 
         # remember best acc@1 and save checkpoint
-        is_best = acc1 > best_acc1
-        best_acc1 = max(acc1, best_acc1)
+        is_best = val_acc1 > best_acc1
+        best_acc1 = max(val_acc1, best_acc1)
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -256,8 +306,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best, filename=filename)
+                'optimizer': optimizer.state_dict(),
+            }, is_best, model_dir=model_dir)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -304,6 +354,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if i % args.print_freq == 0:
             progress.display(i)
+    return top1.avg, top5.avg, losses.avg
 
 
 def validate(val_loader, model, criterion, args):
@@ -347,13 +398,16 @@ def validate(val_loader, model, criterion, args):
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg
+    return losses.avg, top1.avg, top5.avg
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_checkpoint(state, is_best, model_dir='checkpoint.pth.tar'):
+    filename = "checkpoint.pth.tar"
+    model_path = os.path.join(model_dir, filename)
+    torch.save(state, model_path)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        model_best_path = os.path.join(model_dir, "model_best.pth.tar")
+        shutil.copyfile(model_path, model_best_path)
 
 
 class AverageMeter(object):

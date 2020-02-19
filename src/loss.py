@@ -27,7 +27,7 @@ class FileterLoss(nn.Module):
     """
     def __init__(self, model, selected_layer, selected_filter, mode="keep",
                  inter=False, rho=0, regularization="None", p=None,
-                 smoothing=False, _print=None):
+                 smoothing="None", _print=None):
         super(FileterLoss, self).__init__()
         self.model = model.model.features
         self.model.eval()
@@ -62,11 +62,22 @@ class FileterLoss(nn.Module):
             register_forward_hook(hook_function)
 
     def forward(self, processed_inputs, original_inputs):
+        """
+        Args:
+            processed_inputs: [batch_size, channels, height, width]
+            original_inputs: [batch_size, channels, height, width]
+        Reuturns:
+            selected_filter_loss:
+            rest_filter_loss:
+            regularization_loss:
+            smoothing_loss:
+        """
         processed_outputs = processed_inputs
         for index, layer in enumerate(self.model):
             processed_outputs = layer(processed_outputs)
             if index == self.selected_layer:
                 break
+
         # Loss function is the mean of the output of selected layer/filter
         # The final loss would be designed at a pixel level
         # Try to minimize the mean of the output of the specific filter
@@ -101,13 +112,26 @@ class FileterLoss(nn.Module):
                               rest_processed_feature_map)
 
         if self.mode == "keep":
-            selected_filter_loss = torch.norm((selected_original_feature_map -
+            print((selected_original_feature_map - selected_processed_feature_map).size())
+            selected_filter_norm = torch.norm((selected_original_feature_map -
                                                selected_processed_feature_map),
                                               dim=(1, 2), p=2)
-            selected_filter_loss = torch.mean(selected_filter_loss)
+            selected_filter_norm_avg = selected_filter_norm/(height * width)
+            # self._print("selected_filter_loss {}".format(selected_filter_loss.size()))
+            # self._print("selected_filter_loss {}".format(selected_filter_loss))
+            self._print("Max:{} Min:{}".format(torch.max(selected_filter_norm_avg),
+                                               torch.min(selected_filter_norm_avg)))
+            selected_filter_loss = torch.mean(selected_filter_norm_avg)
+
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
                                                dim=(2, 3), p=1)
-            rest_filter_loss = torch.mean(rest_feature_map_norm)
+            rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
+            # self._print("rest_feature_map_norm {}".format(rest_feature_map_norm.size()))
+            self._print("Max:{} Min:{}".format(torch.max(rest_feature_map_norm_avg),
+                                               torch.min(rest_feature_map_norm_avg)))
+            # self._print("{}".format(rest_feature_map_norm))
+            rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
+            print(rest_filter_loss)
         elif self.mode == "remove":
             selected_feature_map_norm = \
                 torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
@@ -191,7 +215,8 @@ def test_keep():
     print("Test keep ----------")
     import model
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 1, 0, mode="keep")
+    filter_loss = FileterLoss(convnet, 1, 0, mode="keep", regularization="L1",
+                              _print=print)
     # inputs = torch.rand(3, 3, 224, 224)
     # inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
     inputs = torch.zeros(3, 3, 224, 224)
@@ -263,7 +288,7 @@ def test_regularize():
 
 if __name__ == "__main__":
     # test keep
-    # test_keep()
+    test_keep()
     # test remove
     # test_remove()
 
@@ -271,4 +296,4 @@ if __name__ == "__main__":
     # test_interact()
 
     # test regularization
-    test_regularize()
+    # test_regularize()

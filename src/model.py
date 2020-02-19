@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
+import copy
 
 
 from utils.initialization import _kaiming_normal, _xavier_normal, \
@@ -184,6 +185,29 @@ def init_weights(net, method, _print):
     else:
         _print("Init weight: Need legal initialization method")
     return net
+
+
+def replace_layer(model, keys=None):
+    model = copy.deepcopy(model)
+    for name, layer in model.named_modules():
+        # Replace maxpool with avgpool
+        if "AVG" in keys and isinstance(layer, nn.MaxPool2d):
+            print("Replace {} with {}".format(name, "avgPool"))
+            first_wrap_name, second_wrap_name = name.split(".")
+            second_wrap_name = int(second_wrap_name)
+            kernel_size = layer.kernel_size
+            stride = layer.stride
+            padding = layer.padding
+            ceil_mode = layer.ceil_mode
+            model._modules[first_wrap_name][second_wrap_name] = \
+                nn.AvgPool2d(kernel_size=kernel_size, stride=stride,
+                             padding=padding, ceil_mode=ceil_mode)
+        if "LEAK" in keys and isinstance(layer, nn.ReLU):
+            print("Replace {} with {}".format(name, "LeakReLU"))
+            first_wrap_name, second_wrap_name = name.split(".")
+            second_wrap_name = int(second_wrap_name)
+            model._modules[first_wrap_name][second_wrap_name] = nn.LeakyReLU()
+    return model
 
 
 if __name__ == "__main__":

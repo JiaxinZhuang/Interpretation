@@ -3,6 +3,7 @@
 
 
 import os
+import sys
 import copy
 import math
 from matplotlib import pyplot as plt
@@ -20,14 +21,18 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            opt_feature_map, cols=4,
                                            conv_output_index_dict=None,
                                            save_dict=None, plt_mode="real",
-                                           top_k=10, layer_max_min=None):
+                                           top_k=10, layer_max_min=None,
+                                           color_map="gray"):
     """Visulize feature map for comparision!!
     Args:
         img_index:
         layer_index: absolute layer index start from 0
-        plt_mode: real, img_scale, imgs_scale
+        plt_mode: [real, img_scale, imgs_scale]
+        color_map: [gray, jet, ...], choices available on
+            https://matplotlib.org/3.1.3/tutorials/colors/colormaps.html
     """
     print("Plot mode is => {}".format(plt_mode))
+    print("Color map is => {}".format(color_map))
     list_index = conv_output_index_dict[layer_index]
     features_map = copy.deepcopy(features_map)[list_index]
     opt_features_map = copy.deepcopy(opt_feature_map)[list_index]
@@ -37,11 +42,11 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
     n_filters = features_map.shape[-1]
     rows = math.ceil(n_filters / cols)
 
-    fig = plt.figure(constrained_layout=True)
+    # fig = plt.figure(constrained_layout=True)
     fig_width = 8+1
-    fig_height = int(rows*0.9)
+    fig_height = int(rows*0.8)
     fig = plt.figure(constrained_layout=False, figsize=(fig_width, fig_height))
-    gs = GridSpec(rows, cols*2, figure=fig)
+    gs = GridSpec(rows, int(cols * 2), figure=fig)
     gs.update(wspace=0.025, hspace=0.1)
 
     font = {'family': 'normal', 'size': 4}
@@ -67,12 +72,12 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             min_pixel = np.min(cat_img_np)
 
             if plt_mode == "real":
-                plt_show(cat_img_np, plt_mode=plt_mode)
+                plt_show(cat_img_np, plt_mode=plt_mode, color_map=color_map)
             elif plt_mode == "img_scale":
                 pixel_max = layer_max
                 pixel_min = layer_min
                 plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
-                         pixel_min=pixel_min)
+                         pixel_min=pixel_min, color_map=color_map)
             elif plt_mode == "imgs_scale":
                 print("TODO")
                 sys.exit(-1)
@@ -88,12 +93,13 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             index += 1
 
             ax.set_title("{}--GT-[{:.1f}~{:.1f}]".format(index, min_pixel,
-                                                      max_pixel),
+                                                         max_pixel),
                          loc="center", pad=1.0, fontdict=font)
     # show figure
     # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
     #              verticalalignment="bottom")
     # plt.tight_layout()
+
     file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
                              format(layer_index, save_dict["index2image"]
                                     [img_index]))
@@ -106,7 +112,7 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
                            cols=8, conv_output_index_dict=None,
                            save_dict=None, is_save=False,
                            save_original=False, plt_mode="real", top_k=10,
-                           layer_max_min=None):
+                           layer_max_min=None, color_map="gray"):
     """Visualize feature map.
     Args:
         img_index:
@@ -114,8 +120,11 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
         is_save: save figures to pdf
         save_original: save imgs under a directory.
         plt_mode: real, img_scale, imgs_scale
+        color_map: [gray, jet, ...], choices available on
+            https://matplotlib.org/3.1.3/tutorials/colors/colormaps.html
     """
     print("Plot mode is => {}".format(plt_mode))
+    print("Color map is => {}".format(color_map))
     list_index = conv_output_index_dict[layer_index]
     features_map = copy.deepcopy(features_map)[list_index]
     features_map = features_map.transpose((0, 2, 3, 1))
@@ -151,17 +160,17 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
             max_values[index] = max_pixel
 
             if plt_mode == "real":
-                plt_show(cat_img_np, plt_mode=plt_mode)
+                plt_show(cat_img_np, plt_mode=plt_mode, color_map=color_map)
             elif plt_mode == "img_scale":
                 pixel_max = layer_max
                 pixel_min = layer_min
                 plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
-                         pixel_min=pixel_min)
+                         pixel_min=pixel_min, color_map=color_map)
             elif plt_mode == "imgs_scale":
                 pixel_max = layer_max_min[list_index][0]
                 pixel_min = layer_max_min[list_index][1]
                 plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
-                         pixel_min=pixel_min)
+                         pixel_min=pixel_min, color_map=color_map)
             else:
                 sys.exit(-1)
             ax.set_title("{}--[{:.1f}~{:.1f}]".format(index, min_pixel,
@@ -227,18 +236,25 @@ def visualize_filters(filters, n_filters, n_channels):
     plt.show()
 
 
-def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None):
+def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
+             color_map=None):
     """Plt under the plt mode.
     Args:
         plt_mode: [real, img_scale, imgs_scale]
     """
     if plt_mode == "real":
-        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+        plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "img_scale":
         cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
-        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+        plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "imgs_scale":
         cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
-        plt.imshow(cat_img_np, cmap="gray", vmin=0, vmax=255)
+        plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     else:
         sys.exit(-1)
+
+# cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95)
+#
+# cbar.set_ticks(np.arange(0, 1.1, 0.5))
+# cbar.set_ticklabels(['low', 'medium', 'high'])
+    # plt.colorbar()
