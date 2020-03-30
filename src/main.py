@@ -354,7 +354,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if i % args.print_freq == 0:
             progress.display(i)
-    return top1.avg, top5.avg, losses.avg
+    return losses.avg, top1.avg, top5.avg
 
 
 def validate(val_loader, model, criterion, args):

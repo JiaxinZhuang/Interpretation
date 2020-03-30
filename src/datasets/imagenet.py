@@ -101,9 +101,9 @@ class ImageNet(torchvision.datasets.ImageFolder):
     @property
     def split_folder(self):
         if self.is_train:
-            split = "ILSVRC2012_train"
+            split = "train"
         else:
-            split = "ILSVRC2012_val"
+            split = "val"
         return os.path.join(self.root, split)
 
     def read_path(self):

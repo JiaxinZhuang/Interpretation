@@ -1,4 +1,5 @@
 /data/*
+/extra/*
 /saved/generated/*
 /saved/models/*
 /saved/logdirs/*

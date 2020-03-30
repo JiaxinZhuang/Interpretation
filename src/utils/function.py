@@ -283,5 +283,19 @@ def freeze_model(net, _print=None):
     return net
 
 
+def format_print(array, name_list):
+    str_format = "{}:{:.3f}\t"
+    output_str = ""
+    base = array[0]
+    if base == 0:
+        print("Base can't be zero")
+        sys.exit(-1)
+    for item, name in zip(array, name_list):
+        output = item / base
+        output_str += str_format.format(name, output)
+    print(output_str)
+
+
 if __name__ == "__main__":
-    _test_dataname2save()
+    # _test_dataname2save()
+    format_print((1,1,2), ["1", "2", "3"])
