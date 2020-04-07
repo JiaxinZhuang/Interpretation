@@ -269,7 +269,7 @@ def main():
         _print("Train from scrach!!")
 
 
-    earlystopping = EarlyStopping(mode="min", min_delta=1e-15, patience=1000)
+    earlystopping = EarlyStopping(mode="min", min_delta=1e-5, patience=100)
 
     original_images = original_images.to(device)
 
@@ -323,9 +323,10 @@ def main():
         _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
         # early stopping
-        if earlystopping.step(torch.tensor(train_loss)) and get_lr(opt) == 1e-8:
-            _print("EarlyStopping at epoch: {}".format(epoch))
-            break
+        if get_lr(opt) == 1e-8:
+            if earlystopping.step(torch.tensor(train_loss)):
+                _print("EarlyStopping at epoch: {}".format(epoch))
+                break
 
 
         if epoch % eval_frequency == 0:

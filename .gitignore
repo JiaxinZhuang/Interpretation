@@ -1,8 +1,6 @@
 /data/*
 /extra/*
-/saved/generated/*
-/saved/models/*
-/saved/logdirs/*
+/saved/*
 tags
 /src/__pycache__/*
 /src/utils/__pycache__/*

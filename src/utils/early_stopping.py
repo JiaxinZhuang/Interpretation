@@ -59,5 +59,6 @@ if __name__ == "__main__":
         ys = torch.exp(torch.tensor(-xs, dtype=torch.float64))
         print(ys)
         if es.step(ys):
+            print("BREAK")
             print(xs, ys)
             break

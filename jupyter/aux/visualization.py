@@ -252,9 +252,3 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     else:
         sys.exit(-1)
-
-# cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95)
-#
-# cbar.set_ticks(np.arange(0, 1.1, 0.5))
-# cbar.set_ticklabels(['low', 'medium', 'high'])
-    # plt.colorbar()
