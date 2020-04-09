@@ -1,4 +1,5 @@
 /data/*
+/extra/*
 /saved/generated/*
 /saved/models/*
 /saved/logdirs/*
@@ -6,3 +7,5 @@ tags
 /src/__pycache__/*
 /src/utils/__pycache__/*
 /__pycache__/*
+*.pyc
+.DS_Store
