@@ -45,6 +45,8 @@ class Config:
                                  choices=["CUB", "TinyImageNet", "stl10",
                                           "mnist", "Caltech101", "ImageNet"],
                                  help="dataset name")
+        self.parser.add_argument("--data_dir", default=None, type=str,
+                                 help="data directory.")
         # log related
         self.parser.add_argument('--log_dir', default="./saved/logdirs/",
                                  type=str, help='store tensorboard files, \
@@ -174,6 +176,7 @@ class Config:
         self.config["num_workers"] = self.args.num_workers
 
         self.config['dataset'] = self.args.dataset
+        self.config["data_dir"] = self.args.data_dir
 
         self.config["resume"] = self.args.resume
         self.config['n_epochs'] = self.args.n_epochs
@@ -256,6 +259,18 @@ class Config:
             self.config["generated_dir"] = "./saved/generated"
         else:
             print("Illegal server configuration")
+            sys.exit(-1)
+
+        if self.config["server"] == "ls15":
+            self.config["data_dir"] = "/data15/Public/Datasets/"
+        elif self.config["server"] == "ls16":
+            self.config["data_dir"] = "/data16/Public/Datasets/"
+        elif self.config["server"] == "ls97":
+            self.config["data_dir"] = "/data/Public/Datasets/"
+        elif self.config["server"] == "desktop":
+            self.config["data_dir"] = "/media/lincolnzjx/HardDisk/Datasets/"
+        else:
+            print("Illegal data_dir")
             sys.exit(-1)
 
     def print_config(self, _print=None):

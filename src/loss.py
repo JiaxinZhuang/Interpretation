@@ -12,6 +12,7 @@ import torch.nn as nn
 
 from utils.regularization import all2zero, l1_regularization, \
         l2_regularization, total_variation_v2
+from utils.function import format_print
 
 
 class FileterLoss(nn.Module):
@@ -112,26 +113,17 @@ class FileterLoss(nn.Module):
                               rest_processed_feature_map)
 
         if self.mode == "keep":
-            print((selected_original_feature_map - selected_processed_feature_map).size())
             selected_filter_norm = torch.norm((selected_original_feature_map -
                                                selected_processed_feature_map),
                                               dim=(1, 2), p=2)
-            selected_filter_norm_avg = selected_filter_norm/(height * width)
-            # self._print("selected_filter_loss {}".format(selected_filter_loss.size()))
-            # self._print("selected_filter_loss {}".format(selected_filter_loss))
-            self._print("Max:{} Min:{}".format(torch.max(selected_filter_norm_avg),
-                                               torch.min(selected_filter_norm_avg)))
-            selected_filter_loss = torch.mean(selected_filter_norm_avg)
+            selected_filter_square = selected_filter_norm ** 2
+            selected_filter_square_avg = selected_filter_square/(height * width)
+            selected_filter_loss = torch.mean(selected_filter_square_avg)
 
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
                                                dim=(2, 3), p=1)
             rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
-            # self._print("rest_feature_map_norm {}".format(rest_feature_map_norm.size()))
-            self._print("Max:{} Min:{}".format(torch.max(rest_feature_map_norm_avg),
-                                               torch.min(rest_feature_map_norm_avg)))
-            # self._print("{}".format(rest_feature_map_norm))
             rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
-            print(rest_filter_loss)
         elif self.mode == "remove":
             selected_feature_map_norm = \
                 torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
@@ -214,15 +206,31 @@ def test_keep():
     """
     print("Test keep ----------")
     import model
+    name_list = ["selected_filter_loss", "rest_filter_loss",
+                 "l1_regularization", "smoothing_loss"]
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 1, 0, mode="keep", regularization="L1",
-                              _print=print)
-    # inputs = torch.rand(3, 3, 224, 224)
-    # inputs_processed = torch.rand(3, 3, 224, 224, requires_grad=True)
-    inputs = torch.zeros(3, 3, 224, 224)
-    inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
-    loss = filter_loss(inputs_processed, inputs)
-    print(loss)
+
+    selected = [
+        [1, 47],
+        [3, 20],
+        [6, 19],
+        [8, 99],
+        [11, 75],
+        [13, 112],
+        [15, 148]
+    ]
+
+    for selected_layer, selected_filter in selected:
+        filter_loss = FileterLoss(convnet, selected_layer, selected_filter,
+                                  mode="keep", regularization="L1",
+                                  _print=print)
+        inputs = torch.zeros(3, 3, 224, 224)
+        inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
+        loss = filter_loss(inputs_processed, inputs)
+        print("selected_layer:{}, selected_filter:{}".format(selected_layer,
+                                                             selected_filter))
+        format_print(loss, name_list=name_list)
+        # print(loss)
 
 
 def test_remove():
@@ -287,7 +295,7 @@ def test_regularize():
 
 
 if __name__ == "__main__":
-    # test keep
+    # est keep
     test_keep()
     # test remove
     # test_remove()

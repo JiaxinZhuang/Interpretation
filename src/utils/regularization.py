@@ -16,7 +16,7 @@ def l1_regularization(inputs, p=None):
     """Regularize inputs with L1 over all pixels.
     """
     # loss = torch.mean(torch.norm(inputs, p=1, dim=(1, 2, 3)))
-    loss = torch.mean(inputs)
+    loss = torch.mean(torch.abs(inputs))
     return loss
 
 

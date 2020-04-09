@@ -68,8 +68,11 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                 resize((width, height), PIL.Image.BICUBIC)
             cat_img = cat_img_horizontal(img, opt_img)
             cat_img_np = np.array(cat_img)
-            max_pixel = np.max(cat_img_np)
-            min_pixel = np.min(cat_img_np)
+
+            max_pixel_gt = np.max(img)
+            min_pixel_gt = np.min(img)
+            max_pixel_opt = np.max(opt_img)
+            min_pixel_opt = np.max(opt_img)
 
             if plt_mode == "real":
                 plt_show(cat_img_np, plt_mode=plt_mode, color_map=color_map)
@@ -90,11 +93,12 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
 
             # ax.set_title("{}.".format(index), loc="center", pad=1.0,
             #              fontdict=font)
-            index += 1
 
-            ax.set_title("{}--GT-[{:.1f}~{:.1f}]".format(index, min_pixel,
-                                                         max_pixel),
+            ax.set_title("{}--GT-[{:.1f}~{:.1f}]-[{:.1f}~{:.1f}]".\
+                         format(index, min_pixel_gt, max_pixel_gt,
+                                min_pixel_opt, max_pixel_opt),
                          loc="center", pad=1.0, fontdict=font)
+            index += 1
     # show figure
     # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
     #              verticalalignment="bottom")
@@ -105,7 +109,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                     [img_index]))
     plt.savefig(file_name)
     print("Successfully Save pdf to {}".format(file_name))
-    plt.show()
+    # plt.show()
 
 
 def visualize_features_map(img_index: int, layer_index: int, features_map,
@@ -233,7 +237,7 @@ def visualize_filters(filters, n_filters, n_channels):
             plt.imshow(fs[:, :, col], cmap="gray")
             index += 1
     # show the figure
-    plt.show()
+    # plt.show()
 
 
 def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
@@ -252,9 +256,3 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     else:
         sys.exit(-1)
-
-# cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95)
-#
-# cbar.set_ticks(np.arange(0, 1.1, 0.5))
-# cbar.set_ticklabels(['low', 'medium', 'high'])
-    # plt.colorbar()

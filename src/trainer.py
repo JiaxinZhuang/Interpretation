@@ -17,6 +17,7 @@ from PIL import Image
 
 from utils.function import init_logging, init_environment, recreate_image, \
         get_lr, save_image, dataname_2_save, get_grad_norm, timethis
+from utils.early_stopping import EarlyStopping
 # preprocess_image
 
 from datasets import imagenet
@@ -40,6 +41,7 @@ def main():
     batch_size = configs_dict["batch_size"]
     learning_rate = configs_dict["learning_rate"]
     dataset_name = configs_dict["dataset"]
+    data_dir = configs_dict["data_dir"]
     re_size = configs_dict["re_size"]
     input_size = configs_dict["input_size"]
     backbone = configs_dict["backbone"]
@@ -179,7 +181,7 @@ def main():
         #     transforms.ToTensor(),
         #     transforms.Normalize(mean, std)
         # ])
-        trainset = imagenet.ImageNet(root="./data/", is_train=True,
+        trainset = imagenet.ImageNet(root=data_dir, is_train=True,
                                      transform=train_transform)
         # valset = imagenet.ImageNet(root="./data/", is_train=False,
         #                            transform=test_transform)
@@ -266,8 +268,8 @@ def main():
     else:
         _print("Train from scrach!!")
 
-    # desc = "Exp-{}-Train".format(exp)
-    # sota = {"epoch": -1, "acc": -1.0}
+
+    earlystopping = EarlyStopping(mode="min", min_delta=1e-5, patience=100)
 
     original_images = original_images.to(device)
 
@@ -306,6 +308,7 @@ def main():
         writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
                           epoch)
         train_loss = loss.item()
+
         if scheduler is not None:
             scheduler.step(train_loss)
 
@@ -318,6 +321,13 @@ def main():
                format(regularization_loss.item()))
         _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
         _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
+
+        # early stopping
+        if get_lr(opt) == 1e-8:
+            if earlystopping.step(torch.tensor(train_loss)):
+                _print("EarlyStopping at epoch: {}".format(epoch))
+                break
+
 
         if epoch % eval_frequency == 0:
             saved_dir = os.path.join(generated_dir, str(epoch))

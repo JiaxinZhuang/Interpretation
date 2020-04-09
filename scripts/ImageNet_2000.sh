@@ -9,7 +9,7 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
-epochs=100
+epochs=80
 server=ls15
 # -------------------------------
 # Variables
