@@ -114,7 +114,11 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
         non_exists_ok: Boolean, imgs_path may not exist in ab_path, True is to
                        allow such situation.
     """
-    existed_imgs = os.listdir(ab_path)
+    try:
+        existed_imgs = os.listdir(ab_path)
+    except:
+        print("FileNotFoundError: {}".format(ab_path))
+        return
     out = []
     valid_imgs_path = []
     valid_imgs_index = []

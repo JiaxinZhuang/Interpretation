@@ -72,7 +72,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             max_pixel_gt = np.max(img)
             min_pixel_gt = np.min(img)
             max_pixel_opt = np.max(opt_img)
-            min_pixel_opt = np.max(opt_img)
+            min_pixel_opt = np.min(opt_img)
 
             if plt_mode == "real":
                 plt_show(cat_img_np, plt_mode=plt_mode, color_map=color_map)
