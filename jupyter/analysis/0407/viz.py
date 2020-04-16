@@ -121,40 +121,42 @@ def main(exp, epoch, layer_index):
                                            color_map="gist_ncar")
 
 if __name__ == "__main__":
-    # Layer-3-Filter-20
-    # exp_list = ["033100",
-    #             "033101",
-    #             "033102",
-    #             "033103",
-    #             "033104",
-    #             "033105",
-    #             "033106",
-    #             "033107",
-    #             "033108",
-    #             "033109",
-    #             "033110",
-    #             "033111"
-    #             ]
-
     exp_list = []
+
     # Layer-6-Filter-19
     # exp_str = "0401{:0>2}"
     # start = 0, end = 31
 
     # Layer-1-Filter-47
-    exp_str = "0330{:0>2}"
-    start = 4
-    end = 19
-    layer_index = 1
+    # exp_str = "0330{:0>2}"
+    # start = 4
+    # end = 19
+    # layer_index = 1
 
     # Layer-3-Filter-20
     # exp_str = "0331{:0>2}"
-    # start = 12
+    # start = 0
     # end = 18
     # layer_index = 3
+
+    # Layer-6-Filter-19
+    layer_index = 6
+    # exp_str = "0401{:0>2}"
+    # start = 0
+    # end = 19
+    # exp_str = "0406{:0>2}"
+    # start = 0
+    # end = 8
+    # exp_str = "0410{:0>2}"
+    # start = 10
+    # end = 17
+    exp_str = "0411{:0>2}"
+    start = 30
+    end = 38
 
     for index in range(start, end+1):
         exp_list.append(exp_str.format(index))
     epoch_list = ["99900"] * len(exp_list)
+    #epoch_list = ["59900"] * len(exp_list)
     for exp, epoch in zip(exp_list, epoch_list):
         main(exp, epoch, layer_index)
