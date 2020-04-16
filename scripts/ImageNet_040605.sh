@@ -15,9 +15,9 @@ server=ls15
 delta=0
 # -------------------------------
 # Variables
-n_epochs=60000
+n_epochs=100001
 
-cuda_visible_devices=3
+cuda_visible_devices=6
 selected_layer=6
 selected_filter=19
 alpha=10000
@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=$n_epochs \
-    --eval_frequency=100 \
+    --eval_frequency=10000 \
     --re_size=224 \
     --backbone=vgg16 \
     --optimizer=SGD \

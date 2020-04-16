@@ -11,18 +11,18 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=30
-server=ls15
+server=ls97
 delta=0
 # -------------------------------
 # Variables
 n_epochs=100000
 
-cuda_visible_devices=0
+cuda_visible_devices=1
 selected_layer=1
 selected_filter=47
 alpha=100000
-beta=100
-gamma=1000000
+beta=10
+gamma=100000000
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \

@@ -323,13 +323,13 @@ def main():
         _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
         # early stopping
-        if get_lr(opt) == 1e-8:
+        if get_lr(opt) <= 1e-7:
             if earlystopping.step(torch.tensor(train_loss)):
-                _print("EarlyStopping at epoch: {}".format(epoch))
+                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
                 break
 
-
-        if epoch % eval_frequency == 0:
+        # In order to save last epoch
+        if epoch % eval_frequency == 0 or epoch+1 == n_epochs:
             saved_dir = os.path.join(generated_dir, str(epoch))
             os.makedirs(saved_dir, exist_ok=True)
             saved_paths = dataname_2_save(imgs_path, saved_dir)
