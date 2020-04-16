@@ -1,12 +1,8 @@
 /data/*
 /extra/*
-/saved/generated/*
-/saved/models/*
-/saved/logdirs/*
+/saved/*
 tags
 /src/__pycache__/*
 /src/utils/__pycache__/*
 /__pycache__/*
-*.pyc
-.DS_Store
-.ipynb_checkpoints
+/jupyter/analysis/*
