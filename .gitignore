@@ -5,6 +5,6 @@ tags
 /src/__pycache__/*
 /src/utils/__pycache__/*
 /jupyter/analysis/*
-__pycache__/*
-.DS_Store
-.ipynb_checkpoints/*
+*__pycache__/*
+*.DS_Store
+*.ipynb_checkpoints/*
