@@ -116,7 +116,7 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
     """
     try:
         existed_imgs = os.listdir(ab_path)
-    except:
+    except Exception:
         print("FileNotFoundError: {}".format(ab_path))
         return
     out = []
