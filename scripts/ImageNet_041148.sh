@@ -16,8 +16,8 @@ delta=0
 # -------------------------------
 # Variables
 n_epochs=200000
-
-cuda_visible_devices=8
+cuda_visible_devices=9
+>>>>>>> f254582fd6554b4017617d442befd8b200d36cda
 selected_layer=6
 selected_filter=19
 alpha=1
