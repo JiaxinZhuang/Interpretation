@@ -58,6 +58,7 @@ def main():
     conv_bias = configs_dict["conv_bias"]
     linear_bias = configs_dict["linear_bias"]
     freeze = configs_dict["freeze"]
+    data_dir = configs_dict["data_dir"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -86,9 +87,9 @@ def main():
             transforms.ToTensor(),
             transforms.Normalize((mean, ), (std, ))
         ])
-        trainset = dataset.MNIST(root="./data/", is_train=True,
+        trainset = dataset.MNIST(root=data_dir, is_train=True,
                                  transform=train_transform)
-        valset = dataset.MNIST(root="./data/", is_train=False,
+        valset = dataset.MNIST(root=data_dir, is_train=False,
                                transform=val_transform)
         num_classes = 200
         input_channel = 1
@@ -112,9 +113,9 @@ def main():
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-        trainset = dataset.CUB(root="./data/", is_train=True,
+        trainset = dataset.CUB(root=data_dir, is_train=True,
                                transform=train_transform)
-        valset = dataset.CUB(root="./data/", is_train=False,
+        valset = dataset.CUB(root=data_dir, is_train=False,
                              transform=test_transform)
         num_classes = 200
         input_channel = 3
@@ -138,9 +139,9 @@ def main():
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-        trainset = dataset.Caltech101(root="./data/", is_train=True,
+        trainset = dataset.Caltech101(root=data_dir, is_train=True,
                                       transform=train_transform)
-        valset = dataset.Caltech101(root="./data/", is_train=False,
+        valset = dataset.Caltech101(root=data_dir, is_train=False,
                                     transform=test_transform)
         num_classes = 101
         input_channel = 3
@@ -164,9 +165,9 @@ def main():
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-        trainset = imagenet.ImageNet(root="./data/", is_train=True,
+        trainset = imagenet.ImageNet(root=data_dir, is_train=True,
                                      transform=train_transform)
-        valset = imagenet.ImageNet(root="./data/", is_train=False,
+        valset = imagenet.ImageNet(root=data_dir, is_train=False,
                                    transform=test_transform)
         num_classes = 1000
         input_channel = 3
