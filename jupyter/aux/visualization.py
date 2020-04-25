@@ -94,7 +94,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             # ax.set_title("{}.".format(index), loc="center", pad=1.0,
             #              fontdict=font)
 
-            ax.set_title("{}--GT-[{:.1f}~{:.1f}]-[{:.1f}~{:.1f}]".\
+            ax.set_title("{}--GT-[{:.1f}~{:.1f}]-[{:.1f}~{:.1f}]".
                          format(index, min_pixel_gt, max_pixel_gt,
                                 min_pixel_opt, max_pixel_opt),
                          loc="center", pad=1.0, fontdict=font)
@@ -256,3 +256,26 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     else:
         sys.exit(-1)
+
+
+def plot_differ(origin_acc, changed_acc, arg_index, title="RGB vs Gray."):
+    plt.figure(figsize=(12, 5), dpi=600)
+    step = 111
+
+    sorted_origin_acc = origin_acc[arg_index][::-1]
+    sorted_changed_acc = changed_acc[arg_index][::-1]
+    xs = list(range(1000))
+    plt.plot(xs, sorted_changed_acc, label="Changed", color="#5bc0de",
+             marker=".")
+    plt.plot(xs, sorted_origin_acc, label="Origin", color="#E8743B",
+             marker=".")
+    plt.fill_between(xs, sorted_origin_acc, sorted_changed_acc,
+                     color="grey", alpha="0.3")
+    plt.xticks(ticks=xs[::step], labels=arg_index[::-step], rotation=20)
+    plt.ylim([0, 1])
+    plt.xlim([0, 1000])
+    plt.xlabel("categories")
+    plt.ylabel("Top1 Acc")
+    plt.title(title)
+    plt.legend()
+    plt.show()

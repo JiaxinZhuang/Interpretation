@@ -167,6 +167,10 @@ class Config:
         self.parser.add_argument("--freeze", type=str2bool, default=False,
                                  help="freeze parameter when training \
                                  beseline.")
+        self.parser.add_argument("--dali", type=str2bool, default=False,
+                                 help="dali to accelebrate load data.")
+        self.parser.add_argument("--save_predict", type=str2bool,
+                                 default=False, help="whether to save predict")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -241,6 +245,8 @@ class Config:
         self.config["freeze"] = self.args.freeze
         # self.config["save_memory"] = self.args.save_memory
         # self.config["triplet_method"] = self.args.triplet_method
+        self.config["dali"] = self.args.dali
+        self.config["save_predict"] = self.args.save_predict
 
     # def _modify_config(self):
     #     """Modify some config
