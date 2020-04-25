@@ -7,3 +7,5 @@ tags
 /__pycache__/*
 /jupyter/analysis/*
 /jupyter/aux/__pycache__/*
+/src/datasets/__pycache__/*
+/jupyter/aux/__pycache__/*

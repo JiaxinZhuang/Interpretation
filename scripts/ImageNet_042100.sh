@@ -10,30 +10,31 @@ experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
 epochs=1
-server=local
+server=ls15
 # -------------------------------
 # Variables
-cuda_visible_devices=0
+cuda_visible_devices=1
 model="vgg16"
 port=9998
 lr=1e-2
 seed=47
-jobs=4
-batch_size=250
+batch_size=300
+initialization="pretrained"
+resume='None'
+num_workers=4
+dali=False
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u ./src/baseline.py \
     --experiment_index $experiment_index \
-    -a $model \
-    --dist-url 'tcp://127.0.0.1:'$port \
-    --dist-backend 'nccl' \
-    --multiprocessing-distributed \
-    --world-size 1 --rank 0 \
-    --epochs $epochs \
-    --lr $lr \
+    --dataset $dataset \
+    --backbone $model \
+    --n_epochs $epochs \
+    --learning_rate $lr \
     --seed $seed \
-    -j $jobs \
-    --replace-relu False \
-    --replace-maxpool False \
-    --batch-size $batch_size \
-	--freeze False \
+    --batch_size $batch_size \
+    --freeze True \
+    --initialization $initialization \
+    --resume $resume \
+    --num_workers $num_workers \
+    --dali $dali \
     --server $server 2>&1 | tee ./saved/logdirs/$experiment_index.log

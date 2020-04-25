@@ -9,7 +9,6 @@ import numpy as np
 from torchvision import transforms
 from torchvision.datasets.folder import (default_loader)
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 ARCHIVE_META = {
     'train': ('ILSVRC2012_img_train.tar', '1d675b47d978889d74fa0da5fadfb00e'),
@@ -148,11 +147,17 @@ def test_ImageNet():
     """Test ImageNet.
     """
     # ImageNet
-    ds = ImageNet(root="../../data", is_train=True,
+    root = "/media/lincolnzjx/HardDisk/Datasets"
+    ds = ImageNet(root=root, is_train=True,
                   transform=transforms.ToTensor())
-    ds.set_data([1, 2, 3], 100)
     print_dataset(ds, 50)
-    print("-" * 100)
+    # ds.set_data([1, 2, 3], 100)
+    # print_dataset(ds, 50)
+    # ds = ImageNet(root=root, is_train=True,
+    #               transform=transforms.ToTensor())
+    # ds.set_data([1, 2, 3], 100)
+    # print_dataset(ds, 50)
+    # print("-" * 100)
     # print_dataset(ds, 1000)
     # for data, target, img_path in ds:
     #     print(data.size(), target, img_path)
@@ -163,14 +168,14 @@ def test_ImageNet():
 
     #  Test set_data, obtaining specific images from specific classes
     #  results: 1,2,3 per 100 images
-    ds = ImageNet(root="../../data", is_train=False,
-                  transform=transforms.ToTensor())
-    ds.set_data([1], 100)
-    print_dataset(ds, 10)
-    print("-" * 100)
-    targets = ds.targets
-    save_path = "../../data/ilsvrc2012/distribution.pdf"
-    plot_dataset(targets, save_path)
+    # ds = ImageNet(root=root, is_train=False,
+    #               transform=transforms.ToTensor())
+    # ds.set_data([1], 100)
+    # print_dataset(ds, 10)
+    # print("-" * 100)
+    # targets = ds.targets
+    # save_path = os.path.join(root, "ilsvrc2012/distribution.pdf")
+    # plot_dataset(targets, save_path)
 
 
 if __name__ == "__main__":

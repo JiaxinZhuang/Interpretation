@@ -10,6 +10,7 @@ Baseline model
 """
 import sys
 import os
+import pickle
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -59,6 +60,7 @@ def main():
     linear_bias = configs_dict["linear_bias"]
     freeze = configs_dict["freeze"]
     data_dir = configs_dict["data_dir"]
+    save_predict = configs_dict["save_predict"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -154,7 +156,8 @@ def main():
                               interpolation=Image.BILINEAR),
             # transforms.RandomCrop(input_size),
             # transforms.RandomHorizontalFlip(),
-            # transforms.ColorJitter(brightness=0.4, saturation=0.4, hue=0.4),
+            # transforms.ColorJitter(brightness=0.4, saturation=0.4,
+            #                        hue=0.4),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
@@ -176,7 +179,8 @@ def main():
         _print("Need dataset")
         sys.exit(-1)
 
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+    trainloader = torch.utils.data.DataLoader(trainset,
+                                              batch_size=batch_size,
                                               shuffle=True,
                                               num_workers=num_workers,
                                               pin_memory=True)
@@ -236,7 +240,7 @@ def main():
         sys.exit(-1)
 
     start_epoch = 0
-    if resume:
+    if resume != "None":
         _print("Resume from model at epoch {}".format(resume))
         resume_path = os.path.join(model_dir, str(exp), str(resume))
         ckpt = torch.load(resume_path)
@@ -254,8 +258,8 @@ def main():
         if not freeze:
             net.train()
             losses = []
-            for _, (data, target, _) in enumerate(tqdm(trainloader,
-                                                       ncols=70, desc=desc)):
+            for _, (data, target, *_) in enumerate(tqdm(trainloader,
+                                                        ncols=70, desc=desc)):
                 data, target = data.to(device), target.to(device)
                 predict = net(data)
                 opt.zero_grad()
@@ -284,16 +288,24 @@ def main():
                                                           train_avg_loss))
 
         if freeze or epoch % eval_frequency:
+            gt_predict = {"train_gt": None,
+                          "train_predict": None,
+                          "val_gt": None,
+                          "val_predict": None}
             net.eval()
             y_true = []
             y_pred = []
-            for _, (data, target, _) in enumerate(tqdm(trainloader, ncols=70,
-                                                       desc="train")):
+            for _, (data, target, *_) in enumerate(tqdm(trainloader, ncols=70,
+                                                        desc="train")):
                 data = data.to(device)
                 predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
                 y_pred.extend(predict)
                 target = target.cpu().data.numpy()
                 y_true.extend(target)
+
+            # save train predict
+            gt_predict["train_gt"] = y_true
+            gt_predict["train_predict"] = y_pred
 
             acc = accuracy_score(y_true, y_pred)
             _print("Epoch:{} - train acc: {:.4f}".format(epoch, acc))
@@ -301,13 +313,17 @@ def main():
 
             y_true = []
             y_pred = []
-            for _, (data, target, _) in enumerate(tqdm(valloader, ncols=70,
-                                                       desc="val")):
+            for _, (data, target, *_) in enumerate(tqdm(valloader, ncols=70,
+                                                        desc="val")):
                 data = data.to(device)
                 predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
                 y_pred.extend(predict)
                 target = target.cpu().data.numpy()
                 y_true.extend(target)
+
+            # save train predict
+            gt_predict["val_gt"] = y_true
+            gt_predict["val_predict"] = y_pred
 
             acc = accuracy_score(y_true, y_pred)
             mcr = mean_class_recall(y_true, y_pred)
@@ -329,6 +345,12 @@ def main():
                 _print("Save model in {}".format(model_path))
                 net_state_dict = net.state_dict()
                 torch.save(net_state_dict, model_path)
+
+            if save_predict:
+                pkl = os.path.join(tf_log, "gt_predict.pickle")
+                with open(pkl, "wb") as handle:
+                    pickle.dump(gt_predict, handle,
+                                protocol=pickle.HIGHEST_PROTOCOL)
 
     _print("Finish Training")
     _print("Best epoch {} with {} on Val: {:.4f}".

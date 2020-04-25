@@ -8,6 +8,8 @@ from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
+from sklearn.metrics import accuracy_score
 
 
 def print_ckpt(ckpt):
@@ -184,3 +186,29 @@ def cat_img_horizontal(img_left, img_right):
     out.paste(img_left, (0, 0))
     out.paste(img_right, (width, 0))
     return out
+
+
+def get_gt_pred_specific_class(net, trainloader, order=[0, 1, 2], device=None):
+    y_true = []
+    y_pred = []
+    net.eval()
+    with torch.no_grad():
+        for index, (data, target, *_) in enumerate(trainloader):
+            if order is not None:
+                data = data[:, order]
+            data = data.to(device)
+            predict = torch.argmax(net(data), dim=1).cpu().data.numpy()
+            y_pred.extend(predict)
+            target = target.cpu().data.numpy()
+            y_true.extend(target)
+    acc = accuracy_score(y_true, y_pred)
+    del data
+    return y_true, y_pred, acc
+
+
+def get_differ(origin, changed, top=100):
+    origin_acc = np.array([acc for *_, acc in origin.values()])
+    changed_acc = np.array([acc for *_, acc in changed.values()])
+    differ = origin_acc - changed_acc
+    arg_index = np.argsort(differ)
+    return arg_index, differ, origin_acc, changed_acc
