@@ -38,7 +38,8 @@ def init_environment(seed=0, cuda_id=0, _print=None):
         # parriclar configuaration, which usually leads to faster runtime.
         # Input size should not vary every iteration, and conputation graph is
         # unchange.
-        # Ref: https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936/2
+        # Ref: https://discuss.pytorch.org/t/
+        # what-does-torch-backends-cudnn-benchmark-do/5936/2
         torch.backends.cudnn.benchmark = False
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -296,6 +297,34 @@ def format_print(array, name_list):
     print(output_str)
 
 
+def adjust_learning_rate(init_lr, optimizer, epoch, step, len_epoch):
+    """Lr sechdule that should yield 76% converged accuracy with batch size
+    256 for ImageNet.
+    ???
+    """
+    factor = epoch // 30
+
+    if epoch >= 80:
+        factor = factor + 1
+
+    lr = init_lr * (0.1 ** factor)
+
+    # Warm up
+    if epoch < 5:
+        lr = lr * float(1 + step + epoch * len_epoch) / (5. * len_epoch)
+
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = lr
+
+
+def to_python_float(data):
+    """Convert torch float to python float"""
+    if hasattr(data, "item"):
+        return data.item()
+    else:
+        return data[0]
+
+
 if __name__ == "__main__":
     # _test_dataname2save()
-    format_print((1,1,2), ["1", "2", "3"])
+    format_print((1, 1, 2), ["1", "2", "3"])

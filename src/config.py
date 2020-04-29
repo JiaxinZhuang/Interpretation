@@ -77,7 +77,10 @@ class Config:
         self.parser.add_argument('--eps', default=1e-7, type=float,
                                  help="episilon for many formulation")
         self.parser.add_argument("--weight_decay", default=1e-4, type=float,
+                                 metavar="W",
                                  help="weight decay for optimizer")
+        self.parser.add_argument("--momentum", default=0.9, type=float,
+                                 metavar="M", help="momentum.")
 
         self.parser.add_argument("--optimizer", default="SGD", type=str,
                                  choices=["SGD", "Adam"],
@@ -88,9 +91,6 @@ class Config:
                                  help="resize to the size")
         self.parser.add_argument("--backbone", default="resnet34", type=str,
                                  help="backbone for model")
-        # self.parser.add_argument("--pretrained", default=False,
-        #                          type=str2bool,
-        #                          help="pretrained model to use or not")
         self.parser.add_argument("--warmup_epochs", default=-1, type=int,
                                  help="epochs to use warm up")
         self.parser.add_argument("--initialization", default="default",
@@ -99,6 +99,12 @@ class Config:
                                           "pretrained", "kaiming_normal",
                                           "kaiming_uniform", "xavier_uniform"],
                                  help="initializatoin method")
+
+        self.parser.add_argument("--prof", dest="prof", action="store_true",
+                                 help="Only run 10 iterations for profiling.")
+        self.parser.add_argument("--print-freq", default=10, type=int,
+                                 metavar="N",
+                                 help="print frequency (default: 10)")
 
     def _add_customized_setting(self):
         """Add customized setting
@@ -172,6 +178,9 @@ class Config:
         self.parser.add_argument("--save_predict", type=str2bool,
                                  default=False, help="whether to save predict")
 
+        self.parser.add_argument("--local_rank", default=0, type=int)
+        self.parser.add_argument("--world_size", default=1, type=int)
+
     def _load_common_setting(self):
         """Load default setting from Parser
         """
@@ -197,15 +206,18 @@ class Config:
 
         self.config["eps"] = self.args.eps
         self.config["weight_decay"] = self.args.weight_decay
+        self.config["momentum"] = self.args.momentum
 
         self.config["input_size"] = self.args.input_size
         self.config["backbone"] = self.args.backbone
         self.config["re_size"] = self.args.re_size
 
         self.config["optimizer"] = self.args.optimizer
-        # self.config["pretrained"] = self.args.pretrained
         self.config["warmup_epochs"] = self.args.warmup_epochs
         self.config["initialization"] = self.args.initialization
+
+        self.config["prof"] = self.args.prof
+        self.config["print_freq"] = self.args.print_freq
 
     def _load_customized_setting(self):
         """Load sepcial setting
@@ -230,30 +242,13 @@ class Config:
         self.config["regular_ex"] = self.args.regular_ex
         self.config["img_index"] = self.args.img_index
         self.config["rescale"] = self.args.rescale
-        # self.config['embedding_len'] = self.args.embedding_len
-        # self.config["normalize"] = self.args.normalize
-        # self.config['margin'] = self.args.margin
-        # self.config["M"] = self.args.M
-        # self.config["K"] = self.args.K
-        # self.config["k_predict"] = self.args.k_predict
-        # self.config['batch_n_class_num'] = self.args.batch_n_class_num
-        # self.config['batch_n_classes'] = self.args.batch_n_classes
-        # self.config["metric_function"] = self.args.metric_function
         self.config["server"] = self.args.server
-        # self.config["bilinear"] = self.args.bilinear
-        # self.config["finetune"] = self.args.finetune
         self.config["freeze"] = self.args.freeze
-        # self.config["save_memory"] = self.args.save_memory
-        # self.config["triplet_method"] = self.args.triplet_method
         self.config["dali"] = self.args.dali
         self.config["save_predict"] = self.args.save_predict
 
-    # def _modify_config(self):
-    #     """Modify some config
-    #     """
-    #     # freeze only used when finetune
-    #     if self.config["finetune"] == False:
-    #         self.args.freeze = False
+        self.config["local_rank"] = self.local_rank
+        self.config["world_size"] = self.world_size
 
     def _path_suitable_for_server(self):
         """Path suitable for server
