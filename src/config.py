@@ -180,6 +180,8 @@ class Config:
 
         self.parser.add_argument("--local_rank", default=0, type=int)
         self.parser.add_argument("--world_size", default=1, type=int)
+        self.parser.add_argument("--distributed", default=False, type=str2bool,
+                                 help="whether to use distribute.")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -247,8 +249,9 @@ class Config:
         self.config["dali"] = self.args.dali
         self.config["save_predict"] = self.args.save_predict
 
-        self.config["local_rank"] = self.local_rank
-        self.config["world_size"] = self.world_size
+        self.config["local_rank"] = self.args.local_rank
+        self.config["world_size"] = self.args.world_size
+        self.config["distributed"] = self.args.distributed
 
     def _path_suitable_for_server(self):
         """Path suitable for server

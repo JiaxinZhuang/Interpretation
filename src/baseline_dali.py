@@ -14,6 +14,7 @@ import math
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
+import torch.multiprocessing as mp
 
 from datasets import imagenet_dali
 from model import init_weights
@@ -106,10 +107,25 @@ def validate(val_loader, net, criterion,
         return losses, top1, top5
 
 
+best_acc1 = 0.0
+
+
 @timethis
 def main():
     configs = config.Config()
     configs_dict = configs.get_config()
+    distributed = configs_dict["distributed"]
+    ngpus_per_node = torch.cuda.device_count()
+
+    if distributed:
+        mp.spawn(main_worker, nprocs=ngpus_per_node,
+                 args=(ngpus_per_node, configs_dict))
+    else:
+        print("Distributed seeting should be set true.")
+        sys.exit(-1)
+
+
+def main_worker(index, ngpus_per_node, configs_dict):
     exp = configs_dict["experiment_index"]
     cuda_id = configs_dict["cuda"]
     num_workers = configs_dict["num_workers"]
@@ -135,9 +151,10 @@ def main():
     data_dir = configs_dict["data_dir"]
     local_rank = configs_dict["local_rank"]
     world_size = configs_dict["world_size"]
-    distributed = configs_dict["distributed"]
     momentum = configs_dict["momentum"]
     prof = configs_dict["prof"]
+
+    global best_acc1
 
     if distributed:
         torch.distributed.init_process_group(backend='nccl',

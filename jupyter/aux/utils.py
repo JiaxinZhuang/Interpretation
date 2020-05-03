@@ -3,6 +3,8 @@
 """
 
 import os
+import sys
+import math
 import numpy as np
 from PIL import Image
 import matplotlib
@@ -82,29 +84,34 @@ def plot_bias_asawhole(net):
     plt.legend(fontsize="xx-small")
 
 
-def obtain_features_map(image, model, layer_output_indexes=None):
+def obtain_features_map(image, model, layer_output_indexes=None,
+                        order=[0, 1, 2]):
     """Obtain feature map
     Args:
         image: [batch_size, n_channels, height, width]
         model: net
         layer_output_indexes: list, contains selected indedx for layer.
+        order: [0, 1, 2]
     Return:
     """
     layer_output = []
     layer_max_min = []
-    out = image
-    for index, layer in enumerate(model):
-        out = layer(out)
-        # print(index, layer, out.size())
-        if index in layer_output_indexes:
-            out_np = out.cpu().detach().numpy()
-            layer_output.append(out_np)
+    out = image[:, order]
 
-            layer_min = np.min(out_np)
-            layer_max = np.max(out_np)
-            layer_max_min.append([layer_max, layer_min])
-            # print("Index:{}, {}".format(index, layer))
-            # print(np.min(out_np), np.max(out_np))
+    model.eval()
+    with torch.no_grad():
+        for index, layer in enumerate(model):
+            out = layer(out)
+            # print(index, layer, out.size())
+            if index in layer_output_indexes:
+                out_np = out.cpu().detach().numpy()
+                layer_output.append(out_np)
+
+                layer_min = np.min(out_np)
+                layer_max = np.max(out_np)
+                layer_max_min.append([layer_max, layer_min])
+                # print("Index:{}, {}".format(index, layer))
+                # print(np.min(out_np), np.max(out_np))
     return layer_output, layer_max_min
 
 
@@ -212,3 +219,96 @@ def get_differ(origin, changed, top=100):
     differ = origin_acc - changed_acc
     arg_index = np.argsort(differ)
     return arg_index, differ, origin_acc, changed_acc
+
+
+def fill_AArray_under_resolution(value, width, height):
+    """Fill a 2D array with a specific value under wdith x height.
+    """
+    aCol = np.repeat(value, height, axis=0)
+    array = np.repeat([aCol], width, axis=0)
+    return array
+
+
+def get_rgb_points_by_batch(batch_size=96, width=224, height=224, step=8):
+    """Get batch by batch size with step.
+    """
+    red_max = 256
+    green_max = 256
+    blue_max = 256
+    counter = 0
+    imgs = []
+    dims = ((red_max - 1) / step + 1) ** 3
+    last_iteration = dims
+    xs = []
+    ys = []
+    zs = []
+
+    for R in range(0, red_max, step):
+        for G in range(0, green_max, step):
+            for B in range(0, blue_max, step):
+                rs = fill_AArray_under_resolution(R, width, height)
+                gs = fill_AArray_under_resolution(G, width, height)
+                bs = fill_AArray_under_resolution(B, width, height)
+                imgs.append(np.dstack((rs, gs, bs)))
+                xs.append(R)
+                ys.append(G)
+                zs.append(B)
+                counter += 1
+                if counter % batch_size == 0 or counter == last_iteration:
+                    imgs = np.array(imgs, dtype=np.float32)
+                    yield imgs, xs, ys, zs
+                    del imgs, xs, ys, zs
+                    imgs = []
+                    xs = []
+                    ys = []
+                    zs = []
+
+
+def obtain_selected_4D_featureMap(net=None,
+                                  layer_output_indexes=None,
+                                  selected_filter=None,
+                                  batch_size=96, step=8,
+                                  method="max", device=None):
+    """Args:
+        method: [max, median, mean]
+    """
+    rets = []
+    if method == "max":
+        sel = np.max
+    elif method == "median":
+        sel = np.median
+    elif method == "mean":
+        sel = np.mean
+    else:
+        print("No method")
+        sys.exit(-1)
+
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+    dataloader = get_rgb_points_by_batch(batch_size=batch_size, step=step)
+    all_iterations = math.ceil((255 / step + 1) ** 3 / batch_size)
+    # xs => r, gs => g, zs => b
+    xs = []
+    ys = []
+    zs = []
+    ret = []
+    for index, (imgs, x, y, z) in enumerate(dataloader):
+        if index % 10 == 0:
+            print("[{}/{}]".format(index, all_iterations))
+        xs.extend(x)
+        ys.extend(y)
+        zs.extend(z)
+        data = zscore(imgs, mean, std)
+        data = torch.tensor(data).to(device)
+        layer_output, _ = obtain_features_map(
+            data, net.model.features,
+            layer_output_indexes=layer_output_indexes)
+        ret = sel(layer_output[0][:, selected_filter], axis=(1, 2))
+        rets.extend(ret)
+        del layer_output
+    del data
+    rets = np.array(rets)
+    xs = np.array(xs, dtype=np.float32)
+    ys = np.array(ys, dtype=np.float32)
+    zs = np.array(zs, dtype=np.float32)
+    return xs, ys, zs, rets

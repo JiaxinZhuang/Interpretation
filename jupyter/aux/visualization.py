@@ -12,6 +12,7 @@ import PIL
 from PIL import Image
 import numpy as np
 import heapq
+import plotly.graph_objects as go
 
 from .utils import cat_img_horizontal
 
@@ -279,3 +280,56 @@ def plot_differ(origin_acc, changed_acc, arg_index, title="RGB vs Gray."):
     plt.title(title)
     plt.legend()
     plt.show()
+
+
+def plot4DFigure(X=None, Y=None, Z=None, values=None, color="RdBu",
+                 cap=False,
+                 normalize=False, set_one=0, exp_activation=False,
+                 title=None, opacity=0.9):
+    X = X.copy()
+    Y = Y.copy()
+    Z = Z.copy()
+    values = values.copy()
+    if normalize:
+        min_value = np.min(values)
+        max_value = np.max(values)
+        values = (values - min_value) / (max_value-min_value)
+    if exp_activation:
+        values = np.exp(values)
+
+    if cap:
+        cap_action = dict(x_show=True, y_show=True, z_show=True, x_fill=1)
+    else:
+        cap_action = dict(x_show=False, y_show=False, z_show=False)
+
+    if set_one:
+        values[values != 0] = 1
+        max_value = np.max(values)
+        min_value = 0.0
+    else:
+        max_value = np.max(values)
+        min_value = -max_value
+    fig = go.Figure(
+         data=go.Volume(
+             x=X.flatten(),
+             y=Y.flatten(),
+             z=Z.flatten(),
+             value=values.flatten(),
+             isomin=min_value,
+             isomax=max_value,
+             opacity=opacity,
+             colorscale=color,
+             surface_count=150,
+             caps=cap_action))
+    fig.update_layout(
+        title=title,
+        scene=dict(xaxis=dict(title='Red'),
+                   yaxis=dict(title='Green'),
+                   zaxis=dict(title='Blue')))
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(nticks=4, range=[0, 255]),
+            yaxis=dict(nticks=4, range=[0, 255]),
+            zaxis=dict(nticks=4, range=[0, 255])),
+        width=700, height=700)
+    fig.show()

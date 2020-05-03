@@ -5,7 +5,8 @@ tags
 /src/__pycache__/*
 /src/utils/__pycache__/*
 /__pycache__/*
-/jupyter/analysis/*
 /jupyter/aux/__pycache__/*
 /src/datasets/__pycache__/*
 /jupyter/aux/__pycache__/*
+/jupyter/analysis/0407/pack/*
+/jupyter/analysis/week4/gt_pred/*
