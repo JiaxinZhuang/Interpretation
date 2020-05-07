@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 from sklearn.metrics import accuracy_score
+from numpy import linalg as LA
+from DISTS_pytorch import DISTS
 
 
 def print_ckpt(ckpt):
@@ -312,3 +314,122 @@ def obtain_selected_4D_featureMap(net=None,
     ys = np.array(ys, dtype=np.float32)
     zs = np.array(zs, dtype=np.float32)
     return xs, ys, zs, rets
+
+
+def get_top_k(cov_matrix, filter_index, top_k=10, method="l1", descend=True):
+    # if method in ["l1", "l2"]:
+    if descend:
+        index = np.argsort(cov_matrix, axis=1)[filter_index][1:top_k+1]
+    else:
+        index = np.argsort(cov_matrix, axis=1)[filter_index][-1:-(top_k+1):-1]
+    distance = cov_matrix[filter_index][index]
+    return index, distance
+    # elif method == "cos":
+    #     return np.argsort(cov_matrix, axis=1)[filter_index][1:top_k+1::-1]
+
+
+def compute_norm(filters, norm=1):
+    """Compute l1 norm. Smaller is better.
+    Args:
+        filter: [output_channel, input_channel, height, width]
+    """
+    rows = cols = filters.shape[0]
+    cov_matrix = np.zeros((rows, cols))
+    for row in range(rows):
+        for col in range(cols):
+            if row == col:
+                continue
+            front = filters[row].reshape(-1)
+            back = filters[col].reshape(-1)
+            differ = front - back
+            cov_matrix[row, col] = LA.norm(differ, ord=norm)
+    return cov_matrix
+
+
+def compute_cosine_similarity(filters):
+    """Compute cosine similarity, but up move 1 and scale by multiplying 0.5
+        Smalller is better.
+    Args:
+        filter: [output_channel, input_channel, height, width]
+    """
+    rows = cols = filters.shape[0]
+    cov_matrix = np.zeros((rows, cols))
+    for row in range(rows):
+        for col in range(cols):
+            if row == col:
+                continue
+            front = filters[row].reshape(-1)
+            front_norm = front / LA.norm(front, ord=2)
+            back = filters[col].reshape(-1)
+            back_norm = back / LA.norm(back, ord=2)
+            cos = np.dot(front_norm, back_norm)
+            cos_modify = 0.5 + 0.5 * cos
+            cov_matrix[row, col] = 1 - cos_modify
+    return cov_matrix
+
+
+def compute_DISTS(imgs, device=None):
+    """Compute DISTS and return conv, using torch here.
+    Args:
+        imgs: [batch_size, 3, height, width]
+    Returns:
+        distance_matrix: [batch_size, batch_size]
+    """
+    D = DISTS().to(device)
+    imgs = imgs.to(device)
+    rows = cols = imgs.size(0)
+    cov_matrix = np.zeros((rows, cols))
+    for row in range(rows):
+        front = imgs[row]
+        front = front.repeat(rows, 1, 1, 1).to(device)
+        back = imgs
+        distance = D(front, back)
+        distance = distance.detach().cpu().view(-1).numpy()
+        cov_matrix[row] = distance
+        del front, distance
+    return cov_matrix
+
+
+def compute_similarity(filters, method="l1", device=None):
+    """Copute Similarity.
+    Args:
+        filter: [output_channel, input_channel, height, width]
+    Returns:
+        distance_matrix: [output_channel, output_channe]
+    """
+    if method == "l1":
+        return compute_norm(filters, norm=1)
+    elif method == "l2":
+        return compute_norm(filters, norm=2)
+    elif method == "cos":
+        return compute_cosine_similarity(filters)
+    elif method == "DISTS":
+        return compute_DISTS(filters, device=device)
+    else:
+        print("Invalid distance measurement method.")
+        sys.exit(-1)
+
+
+def get_DISTS(imgs, ref_imgs, device=None):
+    """Compute DISTS.
+    Args:
+        imgs: [batch_size, 3, height, width]
+        ref_imgs: [batch_size, 3, height, width]
+    """
+    rows = imgs.size(0)
+    cols = ref_imgs.size(0)
+
+    D = DISTS().to(device)
+    imgs = imgs.to(device)
+    ref_imgs = ref_imgs.to(device)
+    dist_matrix = np.zeros((rows, cols))
+
+    for row in range(rows):
+        front = imgs[row]
+        front = front.repeat(cols, 1, 1, 1).to(device)
+        back = ref_imgs
+        distance = D(front, back)
+        distance = distance.detach().cpu().view(-1).numpy()
+        dist_matrix[row] = distance
+        del front, distance
+    return dist_matrix

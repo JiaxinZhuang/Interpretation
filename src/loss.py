@@ -8,14 +8,13 @@ import sys
 
 import torch
 import torch.nn as nn
-# import torch.nn.functional as F
 
 from utils.regularization import all2zero, l1_regularization, \
         l2_regularization, total_variation_v2
 from utils.function import format_print
 
 
-class FileterLoss(nn.Module):
+class FilterLoss(nn.Module):
     """FilterLoss.
 
     Args:
@@ -29,15 +28,14 @@ class FileterLoss(nn.Module):
     def __init__(self, model, selected_layer, selected_filter, mode="keep",
                  inter=False, rho=0, regularization="None", p=None,
                  smoothing="None", _print=None):
-        super(FileterLoss, self).__init__()
+        super(FilterLoss, self).__init__()
         self.model = model.model.features
-        self.model.eval()
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
         self.mode = mode
-        self.conv_output = None
+        # self.conv_output = None
         # Generate a random image
-        self.hook_layer()
+        # self.hook_layer()
         self.rho = rho
         # Use to interact different channels
         self.inter = inter
@@ -47,20 +45,20 @@ class FileterLoss(nn.Module):
         self.smothing_op = self.get_smoothing(smoothing)
         self.p = p
 
-    def hook_layer(self):
-        """Hook layer.
-        """
-        def hook_function(module, grad_in, grad_out):
-            """Hook function.
-            """
-            # Get the conv output of selected filter (from selected layer)
-            # self.conv_output[self.selected_layer] = \
-            #                               grad_out[0, self.selected_filter]
-            self.conv_output = grad_out
+    # def hook_layer(self):
+    #     """Hook layer.
+    #     """
+    #     def hook_function(module, grad_in, grad_out):
+    #         """Hook function.
+    #         """
+    #         # Get the conv output of selected filter (from selected layer)
+    #         # self.conv_output[self.selected_layer] = \
+    #         #                               grad_out[0, self.selected_filter]
+    #         self.conv_output = grad_out
 
-        # Hook the selected layer
-        self.model[self.selected_layer].\
-            register_forward_hook(hook_function)
+    #     # Hook the selected layer
+    #     self.model[self.selected_layer].\
+    #         register_forward_hook(hook_function)
 
     def forward(self, processed_inputs, original_inputs):
         """
@@ -73,11 +71,14 @@ class FileterLoss(nn.Module):
             regularization_loss:
             smoothing_loss:
         """
-        processed_outputs = processed_inputs
-        for index, layer in enumerate(self.model):
-            processed_outputs = layer(processed_outputs)
-            if index == self.selected_layer:
-                break
+        processed_outputs = self.model(processed_inputs)
+
+        # for index, layer in enumerate(self.model):
+        #     processed_outputs = layer(processed_outputs)
+        #     if index == self.selected_layer:
+        #         break
+
+        # self.conv_output = processed_outputs
 
         # Loss function is the mean of the output of selected layer/filter
         # The final loss would be designed at a pixel level
@@ -85,26 +86,27 @@ class FileterLoss(nn.Module):
 
         # Concat tensor along the channels
         rest_processed_feature_map = \
-            torch.cat((self.conv_output[:, :self.selected_filter],
-                       self.conv_output[:, self.selected_filter+1:]),
+            torch.cat((processed_outputs[:, :self.selected_filter],
+                       processed_outputs[:, self.selected_filter+1:]),
                       dim=1)
         # print(rest_processed_feature_map.size())
         selected_processed_feature_map = \
-            self.conv_output[:, self.selected_filter]
+            processed_outputs[:, self.selected_filter]
         # print("selected_processed_feature_map:",
         # selected_processed_feature_map.size())
         *_, height, width = selected_processed_feature_map.size()
         # pixels = height * width
 
         # Obtain original tensors
-        original_outputs = original_inputs
-        for index, layer in enumerate(self.model):
-            original_outputs = layer(original_outputs)
-            if index == self.selected_layer:
-                break
+        # original_outputs = original_inputs
+        # for index, layer in enumerate(self.model):
+        #     original_outputs = layer(original_outputs)
+        #     if index == self.selected_layer:
+        #         break
+        original_outputs = self.model(original_inputs)
 
         selected_original_feature_map = \
-            self.conv_output[:, self.selected_filter]
+            original_outputs[:, self.selected_filter]
         # Whether to use interact to ignore some feature map
         if self.inter:
             self._print("Inter")
@@ -117,31 +119,34 @@ class FileterLoss(nn.Module):
                                                selected_processed_feature_map),
                                               dim=(1, 2), p=2)
             selected_filter_square = selected_filter_norm ** 2
-            selected_filter_square_avg = selected_filter_square/(height * width)
+            selected_filter_square_avg = selected_filter_square /\
+                (height * width)
             selected_filter_loss = torch.mean(selected_filter_square_avg)
 
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
                                                dim=(2, 3), p=1)
             rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
             rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
-        elif self.mode == "remove":
-            selected_feature_map_norm = \
-                torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
-            selected_filter_loss = torch.mean(selected_feature_map_norm)
-            rest_original_feature_map = \
-                torch.cat((self.conv_output[:, :self.selected_filter],
-                           self.conv_output[:, self.selected_filter+1:]),
-                          dim=1)
-            rest_filter_loss = torch.norm((rest_original_feature_map -
-                                          rest_processed_feature_map),
-                                          dim=(2, 3), p=2)
-            rest_filter_loss = torch.mean(rest_filter_loss)
+        # elif self.mode == "remove":
+        #     selected_feature_map_norm = \
+        #         torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
+        #     selected_filter_loss = torch.mean(selected_feature_map_norm)
+        #     rest_original_feature_map = \
+        #         torch.cat((self.conv_output[:, :self.selected_filter],
+        #                    self.conv_output[:, self.selected_filter+1:]),
+        #                   dim=1)
+        #     rest_filter_loss = torch.norm((rest_original_feature_map -
+        #                                   rest_processed_feature_map),
+        #                                   dim=(2, 3), p=2)
+        #     rest_filter_loss = torch.mean(rest_filter_loss)
         else:
             print("No loss function of mode available")
             sys.exit(-1)
 
         regularization_loss = self.regularize_op(processed_inputs, p=self.p)
-        smoothing_loss = self.smothing_op(processed_inputs, p=self.p)
+        # smoothing_loss = self.smothing_op(processed_inputs, p=self.p)
+        # TODO NOT CONSIDER NOW!!
+        smoothing_loss = 0.0
 
         return selected_filter_loss, rest_filter_loss, regularization_loss, \
             smoothing_loss
@@ -221,9 +226,9 @@ def test_keep():
     ]
 
     for selected_layer, selected_filter in selected:
-        filter_loss = FileterLoss(convnet, selected_layer, selected_filter,
-                                  mode="keep", regularization="L1",
-                                  _print=print)
+        filter_loss = FilterLoss(convnet, selected_layer, selected_filter,
+                                 mode="keep", regularization="L1",
+                                 _print=print)
         inputs = torch.zeros(3, 3, 224, 224)
         inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
         loss = filter_loss(inputs_processed, inputs)
@@ -239,7 +244,7 @@ def test_remove():
     print("Test remove ----------")
     import model
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 1, 17, mode="remove")
+    filter_loss = FilterLoss(convnet, 1, 17, mode="remove")
     inputs = torch.zeros(3, 3, 224, 224)
     inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
@@ -254,15 +259,15 @@ def test_interact():
     print("rho is :{}".format(rho))
     import model
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 20, 49, mode="keep", inter=True,
-                              rho=rho)
+    filter_loss = FilterLoss(convnet, 20, 49, mode="keep", inter=True,
+                             rho=rho)
     inputs = torch.zeros(3, 3, 224, 224)
     inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
     print(loss)
     print("----")
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 20, 49, mode="keep", inter=False)
+    filter_loss = FilterLoss(convnet, 20, 49, mode="keep", inter=False)
     inputs = torch.zeros(3, 3, 224, 224)
     inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
@@ -276,8 +281,8 @@ def test_regularize():
     regularization = "None"
     print("Test keep with regularization {} ----------".format(regularization))
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 20, 49, mode="keep",
-                              regularization=regularization)
+    filter_loss = FilterLoss(convnet, 20, 49, mode="keep",
+                             regularization=regularization)
     inputs = torch.zeros(3, 3, 224, 224)
     inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)
@@ -286,8 +291,8 @@ def test_regularize():
     regularization = "L1"
     print("Test keep with regularization {} ----------".format(regularization))
     convnet = model.Network(backbone="vgg16", pretrained=True)
-    filter_loss = FileterLoss(convnet, 20, 49, mode="keep",
-                              regularization=regularization)
+    filter_loss = FilterLoss(convnet, 20, 49, mode="keep",
+                             regularization=regularization)
     inputs = torch.zeros(3, 3, 224, 224)
     inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
     loss = filter_loss(inputs_processed, inputs)

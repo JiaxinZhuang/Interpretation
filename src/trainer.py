@@ -24,7 +24,7 @@ from datasets import imagenet
 import config
 import dataset
 import model
-from loss import FileterLoss
+from loss import FilterLoss
 
 
 @timethis
@@ -66,6 +66,7 @@ def main():
     delta = configs_dict["delta"]
     img_index = configs_dict["img_index"]
     rescale = configs_dict["rescale"]
+    guidedReLU = configs_dict["guidedReLU"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -225,14 +226,16 @@ def main():
 #                                    resize=re_size, device=device)
 # original_image = processed_image.clone().detach()
 
-    net = model.Network(backbone=backbone, num_classes=num_classes)
+    net = model.Network(backbone=backbone, num_classes=num_classes,
+                        selected_layer=selected_layer, guidedReLU=guidedReLU)
     net.to(device)
+    net.eval()
 
     _print("Loss using mode: {}".format(mode))
-    criterion = FileterLoss(net, selected_layer, selected_filter, mode,
-                            inter=inter, rho=rho,
-                            regularization=regularization,
-                            smoothing=smoothing, p=regular_ex, _print=_print)
+    criterion = FilterLoss(net, selected_layer, selected_filter, mode,
+                           inter=inter, rho=rho,
+                           regularization=regularization,
+                           smoothing=smoothing, p=regular_ex, _print=_print)
 
 # Define optimizer for the image
 # Earlier layers need higher learning rates to visualize whereas layer layers
@@ -264,14 +267,17 @@ def main():
         resume_path = os.path.join(model_dir, str(resume_exp),
                                    str(resume_epoch))
         ckpt = torch.load(resume_path)
-        net.load_state_dict(ckpt)
+        net.load_state_dict(ckpt, strict=False)
     else:
         _print("Train from scrach!!")
-
 
     earlystopping = EarlyStopping(mode="min", min_delta=1e-5, patience=100)
 
     original_images = original_images.to(device)
+
+    # GuildeReLU
+    net.set_guildedReLU(guidedReLU)
+    _print(net)
 
     losses = []
     for epoch in range(start_epoch, n_epochs):
@@ -305,8 +311,8 @@ def main():
         writer.add_scalar("Loss/regularization_loss",
                           regularization_loss.item(),
                           epoch)
-        writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
-                          epoch)
+        # writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
+        #                   epoch)
         train_loss = loss.item()
 
         if scheduler is not None:
@@ -319,7 +325,7 @@ def main():
         _print("rest_fileter_loss: {:.4f}".format(rest_fileter_loss.item()))
         _print("regularization_loss: {:.4f}".
                format(regularization_loss.item()))
-        _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
+        # _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
         _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
         # early stopping

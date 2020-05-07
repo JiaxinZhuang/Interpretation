@@ -13,16 +13,18 @@ class_index=950
 num_class=30
 server=desktop
 delta=0
+eval_frequency=5000
 # -------------------------------
 # Variables
-n_epochs=300000
+n_epochs=150000
 
 cuda_visible_devices=0
 selected_layer=1
 selected_filter=47
-alpha=1
+alpha=1000
 beta=1
-gamma=1
+gamma=0
+guidedReLU=True
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -31,7 +33,7 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --cuda=0 \
     --dataset=$dataset \
     --n_epochs=$n_epochs \
-    --eval_frequency=100 \
+    --eval_frequency=$eval_frequency \
     --re_size=224 \
     --backbone=vgg16 \
     --optimizer=SGD \
@@ -53,4 +55,5 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --regular_ex=3 \
     --delta=$delta \
     --rescale=False \
+    --guidedReLU $guidedReLU \
     2>&1 | tee $log_file

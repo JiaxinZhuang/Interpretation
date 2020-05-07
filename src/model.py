@@ -1,11 +1,11 @@
 import sys
 import torch
 import torch.nn as nn
-import torchvision
 from torchsummary import summary
 import copy
 
-
+from models.GuidedReLu import GuidedBackpropReLU
+from models.VGG import VGG16
 from utils.initialization import _kaiming_normal, _xavier_normal, \
         _kaiming_uniform, _xavier_uniform
 
@@ -15,7 +15,7 @@ class Network(nn.Module):
     """
     def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
                  pretrained=False, dropout=True, conv_bias=True,
-                 linear_bias=True):
+                 linear_bias=True, guidedReLU=False, selected_layer=None):
         super(Network, self).__init__()
         if backbone == "alexnet":
             model = AlexNet(num_classes, input_channel)
@@ -23,10 +23,12 @@ class Network(nn.Module):
             model = convNet()
         elif backbone == "vgg16":
             model = VGG16(num_classes, input_channel, pretrained, dropout,
-                          conv_bias, linear_bias)
+                          conv_bias, linear_bias,
+                          selected_layer=selected_layer)
         else:
             print("Need model")
             sys.exit(-1)
+
         self.model = model
 
     def forward(self, inputs):
@@ -37,6 +39,11 @@ class Network(nn.Module):
         """
         self.model.to(device)
         summary(self.model, input_size)
+
+    def set_guildedReLU(self, guidedReLU=False):
+        if guidedReLU:
+            recursive_relu_apply(self.model)
+            print("Using GuidedReLu.")
 
 
 class AlexNet(nn.Module):
@@ -99,63 +106,6 @@ class convNet(nn.Module):
         return out
 
 
-class VGG16(nn.Module):
-    """Vgg16.
-    """
-    def __init__(self, num_classes, input_channel, pretrained=False,
-                 dropout=True, conv_bias=True, linear_bias=True):
-        """INit.
-            if num_classes is 1000, use all original model.
-        """
-        super(VGG16, self).__init__()
-        vgg16 = torchvision.models.vgg16(pretrained=pretrained)
-        self.features = vgg16.features
-        self.avgpool = vgg16.avgpool
-        if num_classes == 1000:
-            print("> Use original fc")
-            self.fc = vgg16.classifier
-        else:
-            self.fc = nn.Sequential(
-                *list(vgg16.classifier.children())[:-1],
-                nn.Linear(4096, num_classes))
-        if not dropout:
-            self.remove_dropout()
-        if not conv_bias:
-            self.remove_conv_bias()
-        if not linear_bias:
-            self.remove_linear_bias()
-
-    def forward(self, inputs):
-        out = self.features(inputs)
-        out = self.avgpool(out)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-        return out
-
-    def remove_dropout(self):
-        """Replace dropout using direct connection.
-        """
-        for name, children in self.fc.named_children():
-            if isinstance(children, nn.Dropout):
-                self.fc[int(name)] = Identity()
-
-    def remove_conv_bias(self):
-        """Remove bias for conv2d.
-        """
-        for name, param in self.features.named_children():
-            if "bias" in name:
-                param.bias.fill_(0)
-                param.requires_grad_(False)
-
-    def remove_linear_bias(self):
-        """Remove bias for linear.
-        """
-        for name, param in self.classifier.named_children():
-            if "bias" in name:
-                param.bias.fill_(0)
-                param.requires_grad_(False)
-
-
 class Identity(nn.Module):
     """Identity path.
     """
@@ -208,6 +158,15 @@ def replace_layer(model, keys=None):
             second_wrap_name = int(second_wrap_name)
             model._modules[first_wrap_name][second_wrap_name] = nn.LeakyReLU()
     return model
+
+
+def recursive_relu_apply(module_top):
+    """Recursively apply GuidedBackpropReLU to ReLU.
+    """
+    for idx, module in module_top._modules.items():
+        recursive_relu_apply(module)
+        if module.__class__.__name__ == "ReLU":
+            module_top._modules[idx] = GuidedBackpropReLU.apply
 
 
 if __name__ == "__main__":

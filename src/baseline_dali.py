@@ -11,6 +11,7 @@ Baseline model
 import sys
 import os
 import math
+import time
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -19,29 +20,43 @@ import torch.multiprocessing as mp
 from datasets import imagenet_dali
 from model import init_weights
 from utils.function import init_logging, init_environment, get_lr, \
-    freeze_model, timethis, adjust_learning_rate, to_python_float
+    timethis, adjust_learning_rate, to_python_float, ProgressMeter
+# freeze_model,
 from utils.metric import AverageMeter, accuracy
-from utils.distributed_func import reduce_tensor
+# from utils.distributed_func import reduce_tensor
 import config
 import model
 
 
 def train(train_loader, net, criterion, optimizer, epoch,
           batch_size=256, prof=False, distributed=False,
-          world_size=1):
+          world_size=1, init_lr=1e-2):
     """Train epoch."""
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
+    batch_time = AverageMeter('Time', ':6.3f')
+    data_time = AverageMeter('Data', ':6.3f')
+    losses = AverageMeter('Loss', ':.4e')
+    top1 = AverageMeter('Acc@1', ':6.2f')
+    top5 = AverageMeter('Acc@5', ':6.2f')
+
+    train_loader_len = int(math.ceil(train_loader._size / batch_size))
+    progress = ProgressMeter(
+                train_loader_len,
+                [batch_time, data_time, losses, top1, top5],
+                prefix="Epoch: [{}]".format(epoch)
+    )
 
     # Switch to train mode.
-    model.train()
+    net.train()
+    end = time.time()
     for index, data in enumerate(train_loader):
+        # measure data loading time
+        data_time.update(time.time() - end)
+
         imgs = data[0]["data"].cuda(non_blocking=True)
         target = data[0]["label"].squeeze().long().cuda(non_blocking=True)
 
-        train_loader_len = int(math.ceil(train_loader._size / batch_size))
-        adjust_learning_rate(optimizer, epoch, index, train_loader_len)
+        adjust_learning_rate(init_lr, optimizer, epoch, index,
+                             train_loader_len)
 
         if prof and index > 10:
             break
@@ -52,67 +67,88 @@ def train(train_loader, net, criterion, optimizer, epoch,
         # measure accuracy and record loss
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
-        if distributed:
-            reduced_loss = reduce_tensor(loss)
-            acc1 = reduce_tensor(acc1)
-            acc5 = reduce_tensor(acc5)
-        else:
-            reduced_loss = loss
+        # if distributed:
+        #     reduced_loss = reduce_tensor(loss)
+        #     acc1 = reduce_tensor(acc1)
+        #     acc5 = reduce_tensor(acc5)
+        # else:
+        #     reduced_loss = loss
 
-        losses.update(to_python_float(reduced_loss), data.size(0))
-        top1.update(to_python_float(acc1, data.size(0)))
-        top5.update(to_python_float(acc5, data.size(0)))
+        losses.update(to_python_float(loss), imgs.size(0))
+        top1.update(to_python_float(acc1), imgs.size(0))
+        top5.update(to_python_float(acc5), imgs.size(0))
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        torch.cuda.synchronize()
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if index % 2000 == 0:
+            progress.display(index)
+
+        # torch.cuda.synchronize()
     return losses, top1, top5
 
 
-def validate(val_loader, net, criterion,
+def validate(val_loader, net, criterion, batch_size=256,
              distributed=False, world_size=1):
     """Validate epoch.
     """
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
+    batch_time = AverageMeter('Time', ':6.3f')
+    losses = AverageMeter('Loss', ':.4e')
+    top1 = AverageMeter('Acc@1', ':6.2f')
+    top5 = AverageMeter('Acc@5', ':6.2f')
+    val_loader_len = math.ceil(val_loader._size / batch_size)
+    progress = ProgressMeter(
+        val_loader_len, [batch_time, losses, top1, top5], prefix='Test: ')
 
     # Switch to evaluate mode.
-    model.eval()
-
-    for index, data in enumerate(val_loader):
-        imgs = data[0]["data"].cuda(non_blocking=True)
-        target = data[0]["label"].squeeze().long().cuda(non_blocking=True)
-
-        with torch.no_grad():
+    net.eval()
+    with torch.no_grad():
+        end = time.time()
+        for index, data in enumerate(val_loader):
+            imgs = data[0]["data"].cuda(non_blocking=True)
+            target = data[0]["label"].squeeze().long().cuda(non_blocking=True)
             output = net(imgs)
             loss = criterion(output, target)
 
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
+            # measure accuracy and record loss
+            acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
-        if distributed:
-            reduced_loss = reduce_tensor(loss, world_size)
-            acc1 = reduce_tensor(acc1, world_size)
-            acc5 = reduce_tensor(acc5, world_size)
-        else:
-            reduced_loss = loss
+            # if distributed:
+            #     reduced_loss = reduce_tensor(loss, world_size)
+            #     acc1 = reduce_tensor(acc1, world_size)
+            #     acc5 = reduce_tensor(acc5, world_size)
+            # else:
+            #     reduced_loss = loss
 
-        losses.update(to_python_float(reduced_loss), imgs.size(0))
-        top1.update(to_python_float(acc1), imgs.size(0))
-        top5.update(to_python_float(acc5), imgs.size(0))
+            losses.update(to_python_float(loss), imgs.size(0))
+            top1.update(to_python_float(acc1), imgs.size(0))
+            top5.update(to_python_float(acc5), imgs.size(0))
 
-        return losses, top1, top5
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            if index % 2000 == 0:
+                progress.display(index)
+
+    return losses, top1, top5
 
 
-best_acc1 = 0.0
+# best_acc1 = 0.0
+sota = {}
+sota["epoch"] = -1
+sota["top1"] = 0.0
 
 
 @timethis
 def main():
     configs = config.Config()
+    configs.print_config(print)
     configs_dict = configs.get_config()
     distributed = configs_dict["distributed"]
     ngpus_per_node = torch.cuda.device_count()
@@ -125,7 +161,7 @@ def main():
         sys.exit(-1)
 
 
-def main_worker(index, ngpus_per_node, configs_dict):
+def main_worker(rank_index, ngpus_per_node, configs_dict):
     exp = configs_dict["experiment_index"]
     cuda_id = configs_dict["cuda"]
     num_workers = configs_dict["num_workers"]
@@ -141,7 +177,7 @@ def main_worker(index, ngpus_per_node, configs_dict):
     backbone = configs_dict["backbone"]
     eval_frequency = configs_dict["eval_frequency"]
     resume = configs_dict["resume"]
-    optimizer = configs_dict["optimizer"]
+    opt = configs_dict["optimizer"]
     initialization = configs_dict["initialization"]
     weight_decay = configs_dict["weight_decay"]
     dropout = configs_dict["dropout"]
@@ -149,48 +185,54 @@ def main_worker(index, ngpus_per_node, configs_dict):
     linear_bias = configs_dict["linear_bias"]
     freeze = configs_dict["freeze"]
     data_dir = configs_dict["data_dir"]
-    local_rank = configs_dict["local_rank"]
+    # local_rank = configs_dict["local_rank"]
     world_size = configs_dict["world_size"]
     momentum = configs_dict["momentum"]
     prof = configs_dict["prof"]
+    distributed = configs_dict["distributed"]
+    dist_url = configs_dict["dist_url"]
 
-    global best_acc1
+    global sota
 
     if distributed:
         torch.distributed.init_process_group(backend='nccl',
-                                             init_method='env://')
-        try:
-            from apex.parallel import DistributedDataParallel as DDP
-        except ImportError:
-            raise ImportError("Please install apex from \
-                              https://www.github.com/nvidia/apex \
-                              to run this example.")
+                                             init_method=dist_url,
+                                             world_size=world_size,
+                                             rank=rank_index)
+        print("=> Initial at process {}".format(rank_index))
+        # try:
+        #     from apex.parallel import DistributedDataParallel as DDP
+        # except ImportError:
+        #     raise ImportError("Please install apex from \
+        #                       https://www.github.com/nvidia/apex \
+        #                       to run this example.")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _print = init_logging(log_dir, exp).info
-    configs.print_config(_print)
-    init_environment(seed=seed, cuda_id=cuda_id, _print=_print)
-    tf_log = os.path.join(log_dir, exp)
-    writer = SummaryWriter(log_dir=tf_log)
+    init_environment(seed=seed, cuda_id=rank_index + cuda_id, _print=_print)
 
-    _print("Using device {}".format(device))
+    # Only do in rank 0 process.
+    if rank_index == 0:
+        tf_log = os.path.join(log_dir, exp)
+        writer = SummaryWriter(log_dir=tf_log)
 
     if dataset_name == "ImageNet":
         _print(">> Using dali to accelebrate.")
 
+        batch_size_per_gpu = int(batch_size / world_size)
         train_loader = imagenet_dali.get_imagenet_iter_dali(
-            mode="train", data_dir=data_dir, batch_size=batch_size,
+            mode="train", data_dir=data_dir, batch_size=batch_size_per_gpu,
             num_threads=num_workers, crop=re_size, world_size=world_size,
-            local_rank=local_rank)
+            local_rank=0)
 
         val_loader = imagenet_dali.get_imagenet_iter_dali(
-            mode="val", data_dir=data_dir, batch_size=batch_size,
+            mode="val", data_dir=data_dir, batch_size=batch_size_per_gpu,
             num_threads=num_workers, crop=re_size,
-            world_size=world_size, local_rank=local_rank)
+            world_size=world_size, local_rank=0)
 
         num_classes = 1000
         input_channel = 3
-        metric_priority = "acc"
+        metric_priority = "top1"
     else:
         _print("Need dataset")
         sys.exit(-1)
@@ -200,40 +242,42 @@ def main_worker(index, ngpus_per_node, configs_dict):
         pretrained = True
     _print("Initialization with {}".format(initialization))
 
-    _print("Using pretrained: {}".format(pretrained))
-    _print("Using dropout: {}".format(dropout))
-    _print("Using conv_bias: {}".format(conv_bias))
-    _print("Using linear_bias: {}".format(linear_bias))
+    # _print("Using pretrained: {}".format(pretrained))
+    # _print("Using dropout: {}".format(dropout))
+    # _print("Using conv_bias: {}".format(conv_bias))
+    # _print("Using linear_bias: {}".format(linear_bias))
     net = model.Network(backbone=backbone, num_classes=num_classes,
                         input_channel=input_channel, pretrained=pretrained,
                         dropout=dropout, conv_bias=conv_bias,
                         linear_bias=linear_bias)
 
     if distributed:
-        net = DDP(net, delay_allreduce=True)
+        # net = DDP(net, delay_allreduce=True)
+        net.cuda()
+        net = torch.nn.parallel.DistributedDataParallel(
+            net, device_ids=[0])
 
     if initialization not in ("default", "pretrained"):
         net = init_weights(net, initialization, _print)
 
-    if freeze:
-        _print("Freeze model")
-        net = freeze_model(net, _print)
-
-    net.to(device)
+    # if freeze:
+    #     _print("Freeze model")
+    #     net = freeze_model(net, _print)
 
     _print(">> Dataset:{} - Input size: {}".format(dataset_name, input_size))
 
     criterion = nn.CrossEntropyLoss()
 
-    if optimizer == "SGD":
+    if opt == "SGD":
         _print("Using optimizer SGD with lr:{:.4f}".format(learning_rate))
-        opt = torch.optim.SGD(net.parameters(), lr=learning_rate,
-                              momentum=momentum, weight_decay=weight_decay)
-    elif optimizer == "Adam":
-        _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
-        opt = torch.optim.Adam(net.parameters(), lr=learning_rate,
-                               betas=(0.9, 0.999), eps=1e-08,
-                               weight_decay=weight_decay, amsgrad=True)
+        optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate,
+                                    momentum=momentum,
+                                    weight_decay=weight_decay)
+    # elif optimizer == "Adam":
+    #     _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
+    #     opt = torch.optim.Adam(net.parameters(), lr=learning_rate,
+    #                            betas=(0.9, 0.999), eps=1e-08,
+    #                            weight_decay=weight_decay, amsgrad=True)
     else:
         _print("Need optimizer")
         sys.exit(-1)
@@ -248,52 +292,55 @@ def main_worker(index, ngpus_per_node, configs_dict):
     else:
         _print("Train from scrach!!")
 
-    sota = {}
-    sota["epoch"] = start_epoch
-    sota[metric_priority] = -1.0
-
     for epoch in range(start_epoch, n_epochs):
-        if not freeze:
-            losses, top1, top5 = train(train_loader, net, criterion,
-                                       optimizer, epoch,
-                                       batch_size=batch_size,
-                                       prof=prof, distributed=distributed,
-                                       world_size=world_size)
+        losses, top1, top5 = train(train_loader, net, criterion,
+                                   optimizer, epoch,
+                                   batch_size=batch_size_per_gpu,
+                                   prof=prof, distributed=distributed,
+                                   world_size=world_size,
+                                   init_lr=learning_rate)
 
-            writer.add_scalar("Lr", get_lr(opt), epoch)
+        if rank_index == 0:
+            writer.add_scalar("Lr", get_lr(optimizer), epoch)
             writer.add_scalar("Loss/train/", losses.avg, epoch)
-            _print("Epoch:{} - train loss: {:.3f}".format(epoch,
-                                                          losses.avg))
+            writer.add_scalar("Acc1/train/", top1.avg, epoch)
+            writer.add_scalar("Acc5/train/", top5.avg, epoch)
+            _print("Epoch:{} - train loss: {:.3f}".format(epoch, losses.avg))
+            _print("Epoch:{} - train acc1: {:.3f}; acc5: {:.3f}".
+                   format(epoch, top1.avg, top5.avg))
 
         if freeze or epoch % eval_frequency:
-
             losses, top1, top5 = validate(val_loader, net, criterion,
+                                          batch_size=batch_size_per_gpu,
                                           distributed=distributed,
                                           world_size=world_size)
 
-            _print("Epoch:{} - Val top1: {:.4f}".format(epoch, top1.avg))
-            _print("Epoch:{} - Val top5: {:.4f}".format(epoch, top5.avg))
-            writer.add_scalar("Acc1/val/", top1.avg, epoch)
-            writer.add_scalar("Acc5/val/", top5.avg, epoch)
+            if rank_index == 0:
+                _print("Epoch:{} - Val top1: {:.4f}".format(epoch, top1.avg))
+                _print("Epoch:{} - Val top5: {:.4f}".format(epoch, top5.avg))
+                writer.add_scalar("Loss/val/", losses.avg, epoch)
+                writer.add_scalar("Acc1/val/", top1.avg, epoch)
+                writer.add_scalar("Acc5/val/", top5.avg, epoch)
 
-            if metric_priority == "top1":
-                metric = top1
-                acc = top1.avg
-            elif metric_priority == "top5":
-                metric = top5
-                acc = top5.avg
+            # if metric_priority == "top1":
+            #     metric = top1
+            #     acc = top1.avg
+            # elif metric_priority == "top5":
+            #     metric = top5
+            #     acc = top5.avg
 
-            # Val acc
-            if metric > sota[metric_priority]:
-                sota[metric_priority] = acc
+            # Val acc and only save in rank 0.
+            if rank_index == 0 and top1.avg > sota["top1"]:
+                sota["top1"] = top1.avg
                 sota["epoch"] = epoch
                 model_path = os.path.join(model_dir, str(exp), str(epoch))
                 _print("Save model in {}".format(model_path))
                 net_state_dict = net.state_dict()
                 torch.save(net_state_dict, model_path)
 
+            val_loader.reset()
+
         train_loader.reset()
-        val_loader.reset()
 
     _print("Finish Training")
     _print("Best epoch {} with {} on Val: {:.4f}".

@@ -37,7 +37,7 @@ class Config:
         self.parser.add_argument('--experiment_index', default="None",
                                  type=str,
                                  help="001, 002, ...")
-        self.parser.add_argument('--cuda', default='0',
+        self.parser.add_argument('--cuda', default=0, type=int,
                                  help="cuda visible device")
         self.parser.add_argument("--num_workers", default=2, type=int,
                                  help="num_workers of dataloader")
@@ -182,6 +182,13 @@ class Config:
         self.parser.add_argument("--world_size", default=1, type=int)
         self.parser.add_argument("--distributed", default=False, type=str2bool,
                                  help="whether to use distribute.")
+        self.parser.add_argument('--dist_url',
+                                 default='tcp://127.0.0.1:23456',
+                                 type=str, help='url used to set up distributed\
+                                 training')
+
+        self.parser.add_argument("--guidedReLU", type=str2bool,
+                                 default=False, help="whether to use guild.")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -252,6 +259,9 @@ class Config:
         self.config["local_rank"] = self.args.local_rank
         self.config["world_size"] = self.args.world_size
         self.config["distributed"] = self.args.distributed
+        self.config["dist_url"] = self.args.dist_url
+
+        self.config["guidedReLU"] = self.args.guidedReLU
 
     def _path_suitable_for_server(self):
         """Path suitable for server

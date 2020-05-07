@@ -14,7 +14,7 @@ import numpy as np
 import heapq
 import plotly.graph_objects as go
 
-from .utils import cat_img_horizontal
+from .utils import cat_img_horizontal, compute_similarity
 
 
 def visualize_features_map_for_comparision(img_index: int, layer_index:
@@ -333,3 +333,17 @@ def plot4DFigure(X=None, Y=None, Z=None, values=None, color="RdBu",
             zaxis=dict(nticks=4, range=[0, 255])),
         width=700, height=700)
     fig.show()
+
+
+def plot_cov_matrix(tensors, method="l1", device=None,
+                    title="cov matrix distance."):
+    """Compute similarity and plot.
+    Args:
+       tensors: [, , height, width]
+    """
+    cov_matrix = compute_similarity(tensors, method=method, device=device)
+    fig, ax = plt.subplots()
+    cax = ax.matshow(cov_matrix)
+    fig.colorbar(cax)
+    ax.set_title(title + " via " + method.upper(), pad=10)
+    return cov_matrix

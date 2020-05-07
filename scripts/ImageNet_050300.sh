@@ -15,7 +15,7 @@ server=ls97
 delta=0
 # -------------------------------
 # Variables
-n_epochs=100000
+n_epochs=150000
 
 cuda_visible_devices=3
 selected_layer=3

@@ -31,7 +31,7 @@ class HybridTrainPipe(Pipeline):
         # reallocation.
         device_memory_padding = 211025920 if decoder_device == "mixed" else 0
         host_memory_padding = 140544512 if decoder_device == "mixed" else 0
-        self.decode = ops.ImageDecoder(
+        self.decode = ops.ImageDecoderRandomCrop(
             device=decoder_device, output_type=types.RGB,
             device_memory_padding=device_memory_padding,
             host_memory_padding=host_memory_padding,
@@ -102,7 +102,7 @@ def get_imagenet_iter_dali(mode, data_dir, batch_size, num_threads,
                                     crop=crop, world_size=world_size,
                                     local_rank=local_rank)
         pip_train.build()
-        size = pip_train.epoch_size("Reader") // world_size
+        size = int(pip_train.epoch_size("Reader") / world_size)
         dali_iter_train = DALIClassificationIterator(pip_train, size=size)
         return dali_iter_train
     elif mode == "val":
@@ -112,7 +112,7 @@ def get_imagenet_iter_dali(mode, data_dir, batch_size, num_threads,
                                 crop=crop, size=val_size,
                                 world_size=world_size, local_rank=local_rank)
         pip_val.build()
-        size = pip_val.epoch_size("Reader") // world_size
+        size = int(pip_val.epoch_size("Reader") / world_size)
         dali_iter_val = DALIClassificationIterator(pip_val, size=size)
         return dali_iter_val
 
