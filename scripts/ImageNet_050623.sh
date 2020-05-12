@@ -18,7 +18,7 @@ eval_frequency=5000
 # Variables
 n_epochs=150000
 
-cuda_visible_devices=2
+cuda_visible_devices=1
 selected_layer=13
 selected_filter=112
 alpha=1000

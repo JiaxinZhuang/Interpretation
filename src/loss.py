@@ -71,12 +71,12 @@ class FilterLoss(nn.Module):
             regularization_loss:
             smoothing_loss:
         """
-        processed_outputs = self.model(processed_inputs)
-
-        # for index, layer in enumerate(self.model):
-        #     processed_outputs = layer(processed_outputs)
-        #     if index == self.selected_layer:
-        #         break
+        # processed_outputs = self.model(processed_inputs)
+        processed_outputs = processed_inputs
+        for index, layer in enumerate(self.model):
+            processed_outputs = layer(processed_outputs)
+            # if index == self.selected_layer:
+            #     break
 
         # self.conv_output = processed_outputs
 
@@ -98,12 +98,12 @@ class FilterLoss(nn.Module):
         # pixels = height * width
 
         # Obtain original tensors
-        # original_outputs = original_inputs
-        # for index, layer in enumerate(self.model):
-        #     original_outputs = layer(original_outputs)
+        original_outputs = original_inputs
+        for index, layer in enumerate(self.model):
+            original_outputs = layer(original_outputs)
         #     if index == self.selected_layer:
         #         break
-        original_outputs = self.model(original_inputs)
+        # original_outputs = self.model(original_inputs)
 
         selected_original_feature_map = \
             original_outputs[:, self.selected_filter]

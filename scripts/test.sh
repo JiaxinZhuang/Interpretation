@@ -21,9 +21,9 @@ n_epochs=150000
 cuda_visible_devices=0
 selected_layer=1
 selected_filter=47
-alpha=1000
+alpha=100000
 beta=1
-gamma=0
+gamma=10000
 guidedReLU=True
 
 

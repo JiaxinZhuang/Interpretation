@@ -11,20 +11,20 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=30
-server=ls97
+server=ls15
 delta=0
-eval_frequency=5000
+eval_frequency=10000
 # -------------------------------
 # Variables
 n_epochs=150000
 
-cuda_visible_devices=0
-selected_layer=13
-selected_filter=112
-alpha=10000
-beta=1
-gamma=10
-guidedReLU=True
+cuda_visible_devices=2
+selected_layer=1
+selected_filter=47
+alpha=100000
+beta=0
+gamma=10000
+guidedReLU=False
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \

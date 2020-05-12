@@ -18,13 +18,13 @@ eval_frequency=5000
 # Variables
 n_epochs=150000
 
-cuda_visible_devices=0
+cuda_visible_devices=7
 selected_layer=13
 selected_filter=112
-alpha=10000
-beta=1
-gamma=10
-guidedReLU=True
+alpha=1
+beta=0
+gamma=0
+guidedReLU=False
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
