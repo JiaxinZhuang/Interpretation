@@ -174,6 +174,22 @@ def save_image(im, path):
     im.save(path)
 
 
+def save_numpy(arr, path):
+    """Save a numpy matrix.
+
+    Args:
+        arr (Numpy array): Matrix of shape BXDxWxH
+        path (str): Path to the image
+    """
+    try:
+        if isinstance(arr, (np.ndarray, np.generic)):
+            # with open(path, "w") as handle:
+            np.save(path, arr)
+    except FileNotFoundError:
+        print("Can't save arr to {}".format(path))
+        sys.exit(-1)
+
+
 def recreate_image(im_as_var, reverse_mean, reverse_std, rescale=False):
     """Recreate images from a torch variable, sort of reverse preprocessing.
 
@@ -239,6 +255,7 @@ def dataname_2_save(imgs_path, saved_dir):
     for name in imgs_path:
         name = name.split("/")[-1:]
         output = os.path.join(saved_dir, *name)
+        output = os.path.splitext(output)[0] + ".png"
         output_name.append(output)
     print(output_name)
     return output_name

@@ -38,6 +38,16 @@ class GuidedBackpropReLU(Function):
         grad_input = torch.addcmul(dummy_zeros_2,
                                    positive_mask_2, grad_input)
         return grad_input
+
+
+# class DefendedReLU(Function):
+#     """DefendedReLU operation, which is a variant of ReLU.
+#     Keep
+#     """
+#     def __init__(self):
+#         pass
+
+
 # class GuidedBackpropReLU(Function):
 #     """GuidedBackpropReLU operation, which a variant of ReLU.
 #     Only positive Grad can be propagate back to input.

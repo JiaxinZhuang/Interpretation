@@ -16,7 +16,8 @@ from torchvision import transforms
 from PIL import Image
 
 from utils.function import init_logging, init_environment, recreate_image, \
-        get_lr, save_image, dataname_2_save, get_grad_norm, timethis
+        get_lr, save_image, dataname_2_save, get_grad_norm, timethis, \
+        save_numpy
 from utils.early_stopping import EarlyStopping
 # preprocess_image
 
@@ -329,17 +330,20 @@ def main():
         _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
 
         # early stopping
+        is_break = False
         if get_lr(opt) <= 1e-7:
             if earlystopping.step(torch.tensor(train_loss)):
-                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
-                break
+                is_break = True
 
         # In order to save last epoch
-        if epoch % eval_frequency == 0 or epoch+1 == n_epochs:
+        if epoch % eval_frequency == 0 or epoch+1 == n_epochs or is_break:
             saved_dir = os.path.join(generated_dir, str(epoch))
             os.makedirs(saved_dir, exist_ok=True)
             saved_paths = dataname_2_save(imgs_path, saved_dir)
+            # [batch_size, channel, height, width]
             processed_images_cpu = processed_images.detach().cpu().numpy()
+            save_numpy(processed_images_cpu, os.path.join(saved_dir,
+                                                          str(epoch)+".npy"))
             for img, save_path in zip(processed_images_cpu, saved_paths):
                 recreate_im = recreate_image(img,
                                              reverse_mean=reverse_mean,
@@ -347,8 +351,9 @@ def main():
                                              rescale=rescale)
                 save_image(recreate_im, save_path)
                 _print("save generated image in {}".format(save_path))
-                # writer.add_image("recreate_image", recreate_im, epoch,
-                #                  dataformats='HWC')
+            if is_break:
+                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
+                break
 
     _print("Finish Training")
 

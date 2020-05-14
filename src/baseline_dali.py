@@ -90,6 +90,7 @@ def train(train_loader, net, criterion, optimizer, epoch,
             progress.display(index)
 
         # torch.cuda.synchronize()
+        del imgs, target, loss, output
     return losses, top1, top5
 
 
@@ -135,6 +136,8 @@ def validate(val_loader, net, criterion, batch_size=256,
 
             if index % 2000 == 0:
                 progress.display(index)
+
+            del imgs, target, loss, output
 
     return losses, top1, top5
 

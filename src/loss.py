@@ -27,7 +27,7 @@ class FilterLoss(nn.Module):
     """
     def __init__(self, model, selected_layer, selected_filter, mode="keep",
                  inter=False, rho=0, regularization="None", p=None,
-                 smoothing="None", _print=None):
+                 smoothing="None", _print=None, defensed=False):
         super(FilterLoss, self).__init__()
         self.model = model.model.features
         self.selected_layer = selected_layer
@@ -44,6 +44,15 @@ class FilterLoss(nn.Module):
         self.regularize_op = self.get_regularize(regularization)
         self.smothing_op = self.get_smoothing(smoothing)
         self.p = p
+        # Activations.
+        self.original_activation_map = []
+        self.processed_activation_map = []
+        self.forward_hook_handler = []
+        # self.backward_hook_handler = []
+
+        self.defensed = defensed
+        if self.defensed:
+            self.hook_backward()
 
     # def hook_layer(self):
     #     """Hook layer.
@@ -60,6 +69,64 @@ class FilterLoss(nn.Module):
     #     self.model[self.selected_layer].\
     #         register_forward_hook(hook_function)
 
+    def hook_forward(self, activation_maps):
+        def forward_hook_fn(module, inputs, outputs):
+            """Hook forward fuction.
+            """
+            activation_maps.append(outputs)
+
+        for name, module in self.model.named_children():
+            if isinstance(module, nn.ReLU):
+                print("=> Register fhook {}".format(name))
+                handler = module.register_forward_hook(forward_hook_fn)
+                self.forward_hook_handler.append(handler)
+
+    def remove_hook_forward(self):
+        """Remove forward hook.
+        """
+        def remove_forward_hook_fn():
+            for handler in self.forward_hook_handler:
+                handler.remove()
+                print("=> Remove fhook {}".format(handler))
+            self.forward_hook_handler = []
+        remove_forward_hook_fn()
+
+    def hook_backward(self):
+        def backward_hook_fn(module, grad_in, grad_out):
+            grad_output = grad_out[0]
+            o_activation_map = self.original_activation_maps.pop()
+            p_activation_map = self.processed_activation_map.pop()
+            positive_mask_1 = (p_activation_map > 0).type_as(grad_output)
+            positive_mask_2 = (p_activation_map < o_activation_map).\
+                type_as(grad_output)
+            dummy_zeros_1 = torch.zeros_like(grad_output)
+            dummy_zeros_2 = torch.zeros_like(grad_output)
+
+            # ReLU
+            grad_input = torch.addcmul(dummy_zeros_1,
+                                       positive_mask_1, grad_output)
+            # Guilded.
+            grad_input = torch.addcmul(dummy_zeros_2,
+                                       positive_mask_2, grad_input)
+            return (grad_input,)
+
+        for name, module in self.model.named_children():
+            if isinstance(module, nn.ReLU):
+                print("=> Register bhook {}".format(name))
+                module.register_backward_hook(backward_hook_fn)
+                # self.backward_hook_handler.append(handler)
+
+    # def remove_backward_hook_fn(self, handler):
+    #     """Remove backward hook.
+    #     """
+    #     def remove_forward_hook_fn():
+    #         for handler in self.forward_hook_handler:
+    #             handler.remove()
+    #             print("=> Remove fhook {}".format(handler))
+    #         self.forward_hook_handler = []
+
+    #     pass
+
     def forward(self, processed_inputs, original_inputs):
         """
         Args:
@@ -71,13 +138,39 @@ class FilterLoss(nn.Module):
             regularization_loss:
             smoothing_loss:
         """
+        if self.defensed:
+            self.remove_hook_forward()
+            # print(self.forward_hook_handler)
+            self.hook_forward(self.original_activation_map)
+        # Obtain original tensors
+        original_outputs = original_inputs
+        for index, layer in enumerate(self.model):
+            original_outputs = layer(original_outputs)
+        #     if index == self.selected_layer:
+        #         break
+        # original_outputs = self.model(original_inputs)
+
+        selected_original_feature_map = \
+            original_outputs[:, self.selected_filter]
         # processed_outputs = self.model(processed_inputs)
+
+        # print(self.original_activation_map[0].size())
+        # print(self.processed_activation_map[0].size())
+        # print(self.forward_hook_handler)
+
+        if self.defensed:
+            self.remove_hook_forward()
+            # print(self.forward_hook_handler)
+            self.hook_forward(self.processed_activation_map)
         processed_outputs = processed_inputs
         for index, layer in enumerate(self.model):
             processed_outputs = layer(processed_outputs)
             # if index == self.selected_layer:
             #     break
 
+        # print(self.original_activation_map[0].size())
+        # print(self.processed_activation_map[0].size())
+        # print(self.forward_hook_handler)
         # self.conv_output = processed_outputs
 
         # Loss function is the mean of the output of selected layer/filter
@@ -97,22 +190,12 @@ class FilterLoss(nn.Module):
         *_, height, width = selected_processed_feature_map.size()
         # pixels = height * width
 
-        # Obtain original tensors
-        original_outputs = original_inputs
-        for index, layer in enumerate(self.model):
-            original_outputs = layer(original_outputs)
-        #     if index == self.selected_layer:
-        #         break
-        # original_outputs = self.model(original_inputs)
-
-        selected_original_feature_map = \
-            original_outputs[:, self.selected_filter]
         # Whether to use interact to ignore some feature map
-        if self.inter:
-            self._print("Inter")
-            rest_processed_feature_map = \
-                self.interact(selected_original_feature_map,
-                              rest_processed_feature_map)
+        # if self.inter:
+        #     self._print("Inter")
+        #     rest_processed_feature_map = \
+        #         self.interact(selected_original_feature_map,
+        #                       rest_processed_feature_map)
 
         if self.mode == "keep":
             selected_filter_norm = torch.norm((selected_original_feature_map -
@@ -213,22 +296,24 @@ def test_keep():
     import model
     name_list = ["selected_filter_loss", "rest_filter_loss",
                  "l1_regularization", "smoothing_loss"]
-    convnet = model.Network(backbone="vgg16", pretrained=True)
 
     selected = [
-        [1, 47],
-        [3, 20],
-        [6, 19],
-        [8, 99],
-        [11, 75],
-        [13, 112],
-        [15, 148]
+        [1, 47]
+        # [3, 20],
+        # [6, 19],
+        # [8, 99],
+        # [11, 75],
+        # [13, 112],
+        # [15, 148]
     ]
 
     for selected_layer, selected_filter in selected:
+        convnet = model.Network(backbone="vgg16", pretrained=True,
+                                selected_layer=selected_layer)
+        print(convnet)
         filter_loss = FilterLoss(convnet, selected_layer, selected_filter,
                                  mode="keep", regularization="L1",
-                                 _print=print)
+                                 _print=print, defensed=True)
         inputs = torch.zeros(3, 3, 224, 224)
         inputs_processed = torch.ones(3, 3, 224, 224, requires_grad=True)
         loss = filter_loss(inputs_processed, inputs)

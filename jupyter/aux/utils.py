@@ -134,12 +134,13 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
     valid_imgs_path = []
     valid_imgs_index = []
     for img_path in imgs_path:
-        file_name = img_path.split("/")[-1]
-        if non_exists_ok and file_name not in existed_imgs:
+        file_name = os.path.splitext(img_path.split("/")[-1])[0]
+        file_name_png = file_name + ".png"
+        if non_exists_ok and file_name_png not in existed_imgs:
             valid_imgs_index.append(0)
             print("Skip {}".format(img_path))
             continue
-        file_path = os.path.join(ab_path, file_name)
+        file_path = os.path.join(ab_path, file_name_png)
         print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0
@@ -177,7 +178,10 @@ def zscore(optimized_data, mean, std):
     Return:
         optimized_data: [batch_size, channels, heights, width]
     """
-    optimized_data = np.transpose(optimized_data.copy(), (0, 3, 1, 2))
+    if optimized_data.shape[1] != 3:
+        optimized_data = np.transpose(optimized_data.copy(), (0, 3, 1, 2))
+    else:
+        optimized_data = optimized_data.copy()
     channels = optimized_data.shape[1]
     for channel in range(channels):
         optimized_data[:, channel, :, :] = optimized_data[:, channel, :, :] -\

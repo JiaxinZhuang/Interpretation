@@ -23,7 +23,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            conv_output_index_dict=None,
                                            save_dict=None, plt_mode="real",
                                            top_k=10, layer_max_min=None,
-                                           color_map="gray"):
+                                           color_map="gray", is_save=True):
     """Visulize feature map for comparision!!
     Args:
         img_index:
@@ -101,16 +101,17 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                          loc="center", pad=1.0, fontdict=font)
             index += 1
     # show figure
-    # fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
-    #              verticalalignment="bottom")
-    # plt.tight_layout()
+    fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
+                 verticalalignment="bottom")
+    plt.tight_layout()
 
-    file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
-                             format(layer_index, save_dict["index2image"]
-                                    [img_index]))
-    plt.savefig(file_name)
-    print("Successfully Save pdf to {}".format(file_name))
-    # plt.show()
+    if is_save:
+        file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
+                                 format(layer_index, save_dict["index2image"]
+                                        [img_index]))
+        plt.savefig(file_name)
+        print("Successfully Save pdf to {}".format(file_name))
+    plt.show()
 
 
 def visualize_features_map(img_index: int, layer_index: int, features_map,

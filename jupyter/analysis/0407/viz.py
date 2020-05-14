@@ -1,23 +1,18 @@
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
+import sys
 import torch
-import os
-from torchsummary import summary
 from torchvision import transforms
 import matplotlib as mpl
-mpl.rcParams['figure.dpi'] = 600
 from PIL import Image
 
-import sys
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+mpl.rcParams['figure.dpi'] = 600
+
 sys.path.append("../../../src/")
 sys.path.append("../../")
 import model
 from datasets import imagenet
-import config
-#from utils.function import init_logging, init_environment, preprocess_image,\
-#         recreate_image, get_lr, save_image
 from aux.utils import obtain_features_map, load_imgs, zscore, extract_valid
 from aux.visualization import visualize_features_map_for_comparision
 
@@ -34,7 +29,7 @@ def main(exp, epoch, layer_index):
 
     resume = "037-0"
     model_dir = "../../../saved/models"
-    generated_dir = "../../../saved/pack/"
+    # generated_dir = "../../../saved/pack/"
     backbone = "vgg16"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -54,8 +49,6 @@ def main(exp, epoch, layer_index):
     # Load data
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-    reverse_mean = [-0.485, -0.456, -0.406]
-    reverse_std = [1/0.229, 1/0.224, 1/0.225]
     train_transform = None
     train_transform = transforms.Compose([
 	transforms.Resize((224, 224), interpolation=Image.BILINEAR),
@@ -118,7 +111,7 @@ def main(exp, epoch, layer_index):
 					   conv_output_index_dict=conv_output_indexes_dict,
                                            save_dict=save_dict,
 					   plt_mode="img_scale",
-                                           color_map="gist_ncar")
+                                           color_map="nipy_spectral")
 
 if __name__ == "__main__":
     exp_list = []
@@ -140,7 +133,7 @@ if __name__ == "__main__":
     # layer_index = 3
 
     # Layer-6-Filter-19
-    layer_index = 6
+    # layer_index = 6
     # exp_str = "0401{:0>2}"
     # start = 0
     # end = 19
@@ -150,13 +143,24 @@ if __name__ == "__main__":
     # exp_str = "0410{:0>2}"
     # start = 10
     # end = 17
-    exp_str = "0411{:0>2}"
-    start = 30
-    end = 38
+    # exp_str = "0411{:0>2}"
+    # start = 30
+    # end = 38
+
+    # Layer-13-Filter-112
+    layer_index = 13
+    # exp_str = "0402{:0>2}"
+    # start = 30
+    # end = 41
+    exp_str = "0512{:0>2}"
+    start = 27
+    end = 27
+    # start = 24
+    # end = 24
 
     for index in range(start, end+1):
         exp_list.append(exp_str.format(index))
-    epoch_list = ["99900"] * len(exp_list)
-    #epoch_list = ["59900"] * len(exp_list)
+    epoch_list = ["45000"] * len(exp_list)
+    # epoch_list = ["59900"] * len(exp_list)
     for exp, epoch in zip(exp_list, epoch_list):
         main(exp, epoch, layer_index)
