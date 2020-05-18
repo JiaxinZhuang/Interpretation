@@ -43,7 +43,8 @@ class Config:
                                  help="num_workers of dataloader")
         self.parser.add_argument('--dataset', default="Caltech101", type=str,
                                  choices=["CUB", "TinyImageNet", "stl10",
-                                          "mnist", "Caltech101", "ImageNet"],
+                                          "mnist", "Caltech101", "ImageNet",
+                                          "DTD"],
                                  help="dataset name")
         self.parser.add_argument("--data_dir", default=None, type=str,
                                  help="data directory.")

@@ -3,12 +3,12 @@
 
 import torch.nn as nn
 
-from BasicComponent import VGGConv, VGGMaxPool, Reshape, VGGMaxUnpool, \
+from .BasicComponent import VGGConv, VGGMaxPool, Reshape, VGGMaxUnpool, \
     VGGConvTranspose
 
 
 class Encoder(nn.Module):
-    def __init__(self, embedding_size=3):
+    def __init__(self, embedding_size=3, num_classes=47):
         super(Encoder, self).__init__()
         self.features = nn.Sequential(
             *VGGConv(3, 64),
@@ -133,14 +133,14 @@ class Decoder(nn.Module):
 class Autoencoder(nn.Module):
     """Autoencoder based on VGG16.
     """
-    def __init__(self, embedding_size=3, classes_num=47,
+    def __init__(self, embedding_size=3, num_classes=47,
                  freesze_encoder=False):
         super(Autoencoder, self).__init__()
         self.encoder = Encoder()
         self.decoder = Decoder()
         self.classifier = nn.Sequential(
             nn.ReLU(True),
-            nn.Linear(embedding_size, classes_num)
+            nn.Linear(embedding_size, num_classes)
         )
 
     def forward(self, inputs):
