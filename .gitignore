@@ -8,5 +8,6 @@ tags
 /jupyter/aux/__pycache__/*
 /src/datasets/__pycache__/*
 /jupyter/aux/__pycache__/*
+/src/models/__pycache__/*
 /jupyter/analysis/0407/pack/*
 /jupyter/analysis/week4/gt_pred/*
