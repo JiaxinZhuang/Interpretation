@@ -117,7 +117,7 @@ def obtain_features_map(image, model, layer_output_indexes=None,
     return layer_output, layer_max_min
 
 
-def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
+def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
     """Load imgs.
     Args:
         ab_path: path to saved generated images.
@@ -135,12 +135,12 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False):
     valid_imgs_index = []
     for img_path in imgs_path:
         file_name = os.path.splitext(img_path.split("/")[-1])[0]
-        file_name_png = file_name + ".png"
-        if non_exists_ok and file_name_png not in existed_imgs:
+        file_name = file_name + ext
+        if non_exists_ok and file_name not in existed_imgs:
             valid_imgs_index.append(0)
             print("Skip {}".format(img_path))
             continue
-        file_path = os.path.join(ab_path, file_name_png)
+        file_path = os.path.join(ab_path, file_name)
         print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0

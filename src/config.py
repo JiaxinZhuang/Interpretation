@@ -189,6 +189,9 @@ class Config:
 
         self.parser.add_argument("--guidedReLU", type=str2bool,
                                  default=False, help="whether to use guild.")
+        self.parser.add_argument("--defensed", type=str2bool,
+                                 default=False, help="whether to used\
+                                 defensed.")
 
     def _load_common_setting(self):
         """Load default setting from Parser
@@ -262,6 +265,7 @@ class Config:
         self.config["dist_url"] = self.args.dist_url
 
         self.config["guidedReLU"] = self.args.guidedReLU
+        self.config["defensed"] = self.args.defensed
 
     def _path_suitable_for_server(self):
         """Path suitable for server

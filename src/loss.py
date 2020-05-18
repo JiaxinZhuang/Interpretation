@@ -45,8 +45,8 @@ class FilterLoss(nn.Module):
         self.smothing_op = self.get_smoothing(smoothing)
         self.p = p
         # Activations.
-        self.original_activation_map = []
-        self.processed_activation_map = []
+        self.original_activation_maps = []
+        self.processed_activation_maps = []
         self.forward_hook_handler = []
         # self.backward_hook_handler = []
 
@@ -94,8 +94,11 @@ class FilterLoss(nn.Module):
     def hook_backward(self):
         def backward_hook_fn(module, grad_in, grad_out):
             grad_output = grad_out[0]
+            # print(len(self.original_activation_maps))
+            # print(len(self.processed_activation_maps))
+            # print(grad_output.size())
             o_activation_map = self.original_activation_maps.pop()
-            p_activation_map = self.processed_activation_map.pop()
+            p_activation_map = self.processed_activation_maps.pop()
             positive_mask_1 = (p_activation_map > 0).type_as(grad_output)
             positive_mask_2 = (p_activation_map < o_activation_map).\
                 type_as(grad_output)
@@ -141,7 +144,7 @@ class FilterLoss(nn.Module):
         if self.defensed:
             self.remove_hook_forward()
             # print(self.forward_hook_handler)
-            self.hook_forward(self.original_activation_map)
+            self.hook_forward(self.original_activation_maps)
         # Obtain original tensors
         original_outputs = original_inputs
         for index, layer in enumerate(self.model):
@@ -161,7 +164,7 @@ class FilterLoss(nn.Module):
         if self.defensed:
             self.remove_hook_forward()
             # print(self.forward_hook_handler)
-            self.hook_forward(self.processed_activation_map)
+            self.hook_forward(self.processed_activation_maps)
         processed_outputs = processed_inputs
         for index, layer in enumerate(self.model):
             processed_outputs = layer(processed_outputs)

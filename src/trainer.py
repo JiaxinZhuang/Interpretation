@@ -46,7 +46,7 @@ def main():
     re_size = configs_dict["re_size"]
     input_size = configs_dict["input_size"]
     backbone = configs_dict["backbone"]
-    eval_frequency = configs_dict["eval_frequency"]
+    # eval_frequency = configs_dict["eval_frequency"]
     resume = configs_dict["resume"]
     optimizer = configs_dict["optimizer"]
     selected_layer = configs_dict["selected_layer"]
@@ -68,6 +68,7 @@ def main():
     img_index = configs_dict["img_index"]
     rescale = configs_dict["rescale"]
     guidedReLU = configs_dict["guidedReLU"]
+    defensed = configs_dict["defensed"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -235,7 +236,7 @@ def main():
     _print("Loss using mode: {}".format(mode))
     criterion = FilterLoss(net, selected_layer, selected_filter, mode,
                            inter=inter, rho=rho,
-                           regularization=regularization,
+                           regularization=regularization, defensed=defensed,
                            smoothing=smoothing, p=regular_ex, _print=_print)
 
 # Define optimizer for the image
@@ -336,7 +337,7 @@ def main():
                 is_break = True
 
         # In order to save last epoch
-        if epoch % eval_frequency == 0 or epoch+1 == n_epochs or is_break:
+        if epoch == 0 or epoch+1 == n_epochs or is_break:
             saved_dir = os.path.join(generated_dir, str(epoch))
             os.makedirs(saved_dir, exist_ok=True)
             saved_paths = dataname_2_save(imgs_path, saved_dir)

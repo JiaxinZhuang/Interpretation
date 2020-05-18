@@ -4,6 +4,7 @@ import sys
 import copy
 from functools import wraps
 import time
+from datetime import timedelta
 
 import resource
 
@@ -71,7 +72,8 @@ def timethis(func, *args, **kwargs):
         start_time = time.time()
         ret = func(*args, **kwargs)
         elapse = time.time() - start_time
-        print(">> Functoin: {} costs {:.4f}s".format(func.__name__, elapse))
+        elapse = str(timedelta(seconds=elapse))
+        print(">> Functoin: {} costs {}".format(func.__name__, elapse))
         sys.stdout.flush()
         return ret
     return wrapper
