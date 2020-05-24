@@ -5,35 +5,28 @@ import sys
 import os
 import torch
 import torch.nn as nn
-import math
 import time
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
-from datasets import DTD
+from datasets import DTD, skin7
 from models.Autoencoder import Autoencoder
 import config
 from model import init_weights
 from utils.function import init_logging, init_environment, get_lr, timethis,\
-    to_python_float, ProgressMeter
+    to_python_float
+# ProgressMeter
 from utils.metric import AverageMeter, accuracy
 
 
 def train(loader, net, cls_criterion, rec_criterion, optimizer,
-          batch_size, print_freq, epoch, device):
+          batch_size, print_freq, epoch, device, alpha, beta):
     losses = AverageMeter('losses', ':.4e')
     cls_losses = AverageMeter('cls_losses', ':.4e')
     rec_losses = AverageMeter('rec_losses', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     batch_time = AverageMeter('Time', ':6.3f')
     date_time = AverageMeter('Date', ':6.3f')
-
-    # train_loader_len = int(math.ceil(len(loader) / batch_size))
-    # progress = ProgressMeter(
-    #             train_loader_len,
-    #             [batch_time, date_time, losses, cls_losses, rec_losses, top1],
-    #             prefix="Epoch: [{}]".format(epoch)
-    # )
 
     net.train()
     end = time.time()
@@ -46,7 +39,7 @@ def train(loader, net, cls_criterion, rec_criterion, optimizer,
         output, preds = net(imgs)
         classification_loss = cls_criterion(preds, target)
         reconstruction_loss = rec_criterion(output, imgs)
-        loss = classification_loss + reconstruction_loss
+        loss = alpha * classification_loss + beta * reconstruction_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -72,7 +65,7 @@ def train(loader, net, cls_criterion, rec_criterion, optimizer,
 
 
 def validate(loader, net, cls_criterion, rec_criterion, batch_size,
-             print_freq, epoch, device):
+             print_freq, epoch, device, alpha, beta):
     """Validate.
     """
     losses = AverageMeter('losses', ':.4e')
@@ -99,7 +92,7 @@ def validate(loader, net, cls_criterion, rec_criterion, batch_size,
             output, preds = net(imgs)
             classification_loss = cls_criterion(preds, target)
             reconstruction_loss = rec_criterion(output, imgs)
-            loss = classification_loss + reconstruction_loss
+            loss = alpha * classification_loss + beta * reconstruction_loss
 
             acc1 = accuracy(preds, target, topk=(1,))
             top1.update(to_python_float(acc1), imgs.size(0))
@@ -117,7 +110,7 @@ def validate(loader, net, cls_criterion, rec_criterion, batch_size,
 
             # if index % print_freq == 0:
             #     progress.display(index)
-    return losses, cls_losses, rec_losses, acc1
+    return losses, cls_losses, rec_losses, top1
 
 
 @timethis
@@ -136,11 +129,15 @@ def main():
     learning_rate = configs_dict["learning_rate"]
     dataset_name = configs_dict["dataset"]
     # input_size = configs_dict["input_size"]
+    input_size = configs_dict["input_size"]
     eval_frequency = configs_dict["eval_frequency"]
     # resume = configs_dict["resume"]
     opt = configs_dict["optimizer"]
     print_freq = configs_dict["print_freq"]
     initialization = configs_dict["initialization"]
+    alpha = configs_dict["alpha"]
+    beta = configs_dict["beta"]
+    embedding_size = configs_dict["embedding_size"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -155,7 +152,7 @@ def main():
         std = [0.241, 0.241, 0.241]
         train_transform = transforms.Compose([
             transforms.Grayscale(3),
-            transforms.Resize((224, 224)),
+            transforms.Resize((input_size, input_size)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.ToTensor(),
@@ -165,6 +162,32 @@ def main():
                            transform=train_transform)
         num_classes = 47
         # input_channel = 3
+    elif dataset_name == "Skin7":
+        mean = [0.7626, 0.5453, 0.5714]
+        std = [0.1404, 0.1519, 0.1685]
+        train_transform = transforms.Compose([
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+            ])
+        val_transform = transforms.Compose([
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+            ])
+        trainset = skin7.Skin7(root=data_dir, train=True,
+                               transform=train_transform)
+        trainloader = torch.utils.data.DataLoader(trainset,
+                                                  batch_size=batch_size,
+                                                  shuffle=True,
+                                                  num_workers=num_workers)
+        valset = skin7.Skin7(root=data_dir, train=False,
+                             transform=val_transform)
+        valloader = torch.utils.data.DataLoader(valset,
+                                                batch_size=batch_size,
+                                                shuffle=False,
+                                                num_workers=num_workers)
+        num_classes = 7
     else:
         _print("NO dataset.")
         sys.exit(-1)
@@ -175,16 +198,24 @@ def main():
                                               num_workers=num_workers,
                                               pin_memory=True)
 
-    net = Autoencoder(embedding_size=3, num_classes=num_classes)
+    net = Autoencoder(embedding_size=embedding_size, num_classes=num_classes)
     _print("Initialization with {}".format(initialization))
-    net = init_weights(net, initialization, _print)
+    if initialization != "pretrained":
+        net = init_weights(net, initialization, _print)
     net.to(device)
 
     _print(">> Dataset:{} - Input size: {}".format(dataset_name, 224))
 
+    scheduler = None
     if opt == "Adam":
         optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate,
                                      weight_decay=1e-5)
+    elif opt == "SGD":
+        optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate,
+                                    momentum=0.9, weight_decay=1e-5)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer, mode='min', factor=0.1, patience=10,
+                    verbose=True, threshold=1e-4)
     else:
         _print("No optimzier.")
         sys.exit(-1)
@@ -194,13 +225,15 @@ def main():
 
     sota = {}
     sota["epoch"] = -1
-    sota["top1"] = -1.0
+    # sota["top1"] = -1.0
+    sota["rec_loss"] = 99999999
     for epoch in range(n_epochs):
         losses, cls_losses, rec_losses, top1 = \
             train(loader=trainloader, net=net, cls_criterion=cls_criterion,
                   rec_criterion=rec_criterion, optimizer=optimizer,
                   batch_size=batch_size, print_freq=print_freq, epoch=epoch,
-                  device=device)
+                  device=device, alpha=alpha, beta=beta)
+        scheduler.step(losses.avg)
         writer.add_scalar("Lr", get_lr(optimizer), epoch)
         writer.add_scalar("Loss/train/", losses.avg, epoch)
         writer.add_scalar("cls_Loss/train/", cls_losses.avg, epoch)
@@ -210,21 +243,13 @@ def main():
                rec_losses: {:.3f}".format(epoch, losses.avg, cls_losses.avg,
                                           rec_losses.avg))
 
-        if top1.avg > sota["top1"]:
-            sota["top1"] = top1.avg
-            sota["epoch"] = epoch
-            model_path = os.path.join(model_dir, str(exp), str(epoch))
-            _print("Save model in {}".format(model_path))
-            net_state_dict = net.state_dict()
-            torch.save(net_state_dict, model_path)
-
         if epoch % eval_frequency == 0:
             losses, cls_losses, rec_losses, top1 = \
-                validate(loader=trainloader, net=net,
+                validate(loader=valloader, net=net,
                          cls_criterion=cls_criterion,
-                         rec_criterion=rec_criterion, optimizer=optimizer,
+                         rec_criterion=rec_criterion,
                          batch_size=batch_size, print_freq=print_freq,
-                         epoch=epoch, device=device)
+                         epoch=epoch, device=device, alpha=alpha, beta=beta)
             writer.add_scalar("Loss/val/", losses.avg, epoch)
             writer.add_scalar("cls_Loss/val/", cls_losses.avg, epoch)
             writer.add_scalar("res_Loss/val/", rec_losses.avg, epoch)
@@ -232,6 +257,15 @@ def main():
             _print("Epoch: {} - val loss: {:.3f} - cls_losses: {:.3f} -\
                     rec_losses: {:.3f}".format(epoch, losses.avg,
                                                cls_losses.avg, rec_losses.avg))
+
+        if rec_losses.avg < sota["rec_loss"]:
+            # sota["top1"] = top1.avg
+            sota["rec_loss"] = rec_losses.avg
+            sota["epoch"] = epoch
+            model_path = os.path.join(model_dir, str(exp), str(epoch))
+            _print("Save model in {}".format(model_path))
+            net_state_dict = net.state_dict()
+            torch.save(net_state_dict, model_path)
 
     _print("Finish Training")
 

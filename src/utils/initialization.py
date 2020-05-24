@@ -62,10 +62,16 @@ def _kaiming_normal(net, _print):
                 nn.init.constant_(module.bias, 0)
         elif isinstance(module, nn.BatchNorm2d):
             _print("Init Batch-normalization")
-            nn.init.kaiming_normal_(module.weight, 1)
+            nn.init.constant_(module.weight, 1)
             nn.init.constant_(module.bias, 0)
         elif isinstance(module, nn.Linear):
             _print("Init Linear")
+            nn.init.kaiming_normal_(module.weight, mode='fan_in',
+                                    nonlinearity='relu')
+            if module.bias is not None:
+                nn.init.constant_(module.bias, 0)
+        elif isinstance(module, nn.ConvTranspose2d):
+            _print("Init Conv2dT")
             nn.init.kaiming_normal_(module.weight, mode='fan_in',
                                     nonlinearity='relu')
             if module.bias is not None:

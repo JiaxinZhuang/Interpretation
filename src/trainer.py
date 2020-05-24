@@ -19,13 +19,13 @@ from utils.function import init_logging, init_environment, recreate_image, \
         get_lr, save_image, dataname_2_save, get_grad_norm, timethis, \
         save_numpy
 from utils.early_stopping import EarlyStopping
-# preprocess_image
-
+from model import replace_layer
+from loss import FilterLoss
 from datasets import imagenet
+
 import config
 import dataset
 import model
-from loss import FilterLoss
 
 
 @timethis
@@ -69,6 +69,7 @@ def main():
     rescale = configs_dict["rescale"]
     guidedReLU = configs_dict["guidedReLU"]
     defensed = configs_dict["defensed"]
+    avg = configs_dict["avg"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -230,10 +231,17 @@ def main():
 
     net = model.Network(backbone=backbone, num_classes=num_classes,
                         selected_layer=selected_layer, guidedReLU=guidedReLU)
+
+    if avg:
+        _print("Replace maxpool with avgpool.")
+        net = replace_layer(net, keys=["AVG"])
+
     net.to(device)
     net.eval()
 
     _print("Loss using mode: {}".format(mode))
+    if backbone == "vgg16":
+        selected_layer = int(selected_layer)
     criterion = FilterLoss(net, selected_layer, selected_filter, mode,
                            inter=inter, rho=rho,
                            regularization=regularization, defensed=defensed,

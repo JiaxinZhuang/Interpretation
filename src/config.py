@@ -44,7 +44,7 @@ class Config:
         self.parser.add_argument('--dataset', default="Caltech101", type=str,
                                  choices=["CUB", "TinyImageNet", "stl10",
                                           "mnist", "Caltech101", "ImageNet",
-                                          "DTD"],
+                                          "DTD", "Skin7"],
                                  help="dataset name")
         self.parser.add_argument("--data_dir", default=None, type=str,
                                  help="data directory.")
@@ -91,6 +91,7 @@ class Config:
         self.parser.add_argument("--re_size", default=256, type=int,
                                  help="resize to the size")
         self.parser.add_argument("--backbone", default="resnet34", type=str,
+                                 choices=["resnet18", "vgg16"],
                                  help="backbone for model")
         self.parser.add_argument("--warmup_epochs", default=-1, type=int,
                                  help="epochs to use warm up")
@@ -110,7 +111,7 @@ class Config:
     def _add_customized_setting(self):
         """Add customized setting
         """
-        self.parser.add_argument('--selected_layer', default=5, type=int,
+        self.parser.add_argument('--selected_layer', default="5", type=str,
                                  help='For convNet: 3, 5')
         self.parser.add_argument('--selected_filter', default=25, type=int,
                                  help='For convNet: 3(max 20), 5(max 50)')
@@ -194,6 +195,12 @@ class Config:
                                  default=False, help="whether to used\
                                  defensed.")
 
+        self.parser.add_argument("--embedding_size", type=int,
+                                 default=3, help="embedding_size")
+
+        self.parser.add_argument("--avg", dest="avg", action="store_true",
+                                 help="replace avgpool with maxpooling.")
+
     def _load_common_setting(self):
         """Load default setting from Parser
         """
@@ -267,6 +274,10 @@ class Config:
 
         self.config["guidedReLU"] = self.args.guidedReLU
         self.config["defensed"] = self.args.defensed
+
+        self.config["embedding_size"] = self.args.embedding_size
+
+        self.config["avg"] = self.args.avg
 
     def _path_suitable_for_server(self):
         """Path suitable for server

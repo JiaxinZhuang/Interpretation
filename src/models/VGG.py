@@ -16,13 +16,13 @@ class VGG16(nn.Module):
         super(VGG16, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=pretrained)
 
-        self.selected_layer = selected_layer
+        self.selected_layer = int(selected_layer)
 
         # Whether to remove some layers.
         if selected_layer is not None:
             print("Only Keep {}th layers before.".format(selected_layer))
             new_model = nn.Sequential(
-                *list(vgg16.features.children())[: selected_layer+1]
+                *list(vgg16.features.children())[: self.selected_layer+1]
             )
             self.features = new_model
             self.avgpool = None

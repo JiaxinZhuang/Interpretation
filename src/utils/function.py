@@ -362,6 +362,40 @@ class ProgressMeter:
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
 
+def get_embeddings(loader, net, save_memory=False):
+    """Get embeddings according to net given loader, train or test dataset
+    """
+    def _get_raw_pixel(loader):
+        embeddings_cpu = []
+        targets_cpu = []
+        for _, (data, targets) in enumerate(loader):
+            data = data.view(data.size(0), -1)
+            targets = targets.cpu()
+            embeddings_cpu.append(data)
+            targets_cpu.append(targets)
+        embeddings_cpu = torch.cat(embeddings_cpu, dim=0)
+        targets_cpu = torch.cat(targets_cpu, dim=0)
+        return embeddings_cpu, targets_cpu
+
+    if net is None:
+        return _get_raw_pixel(loader)
+
+    net.eval()
+    embeddings_cpu = []
+    targets_cpu = []
+    with torch.no_grad():
+        for _, (data, targets) in enumerate(loader):
+            data = data.cuda()
+            output = net.get_embeddings(data)
+            output = output.cpu()
+            targets = targets.cpu()
+            embeddings_cpu.append(output)
+            targets_cpu.append(targets)
+    embeddings_cpu = torch.cat(embeddings_cpu, dim=0)
+    targets_cpu = torch.cat(targets_cpu, dim=0)
+    return embeddings_cpu, targets_cpu
+
+
 if __name__ == "__main__":
     # _test_dataname2save()
     format_print((1, 1, 2), ["1", "2", "3"])

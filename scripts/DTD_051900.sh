@@ -9,7 +9,7 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=DTD
 # -------------------------------
-epochs=100
+epochs=300
 server=ls97
 # -------------------------------
 # Variables

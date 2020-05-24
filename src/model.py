@@ -6,6 +6,7 @@ import copy
 
 from models.GuidedReLu import GuidedBackpropReLU
 from models.VGG import VGG16
+from models.ResNet import ResNet18
 from utils.initialization import _kaiming_normal, _xavier_normal, \
         _kaiming_uniform, _xavier_uniform
 
@@ -15,12 +16,16 @@ class Network(nn.Module):
     """
     def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
                  pretrained=False, dropout=True, conv_bias=True,
-                 linear_bias=True, guidedReLU=False, selected_layer=None):
+                 linear_bias=True, guidedReLU=False, selected_layer=None,
+                 activations=False):
         super(Network, self).__init__()
         if backbone == "alexnet":
             model = AlexNet(num_classes, input_channel)
         elif backbone == "convNet":
             model = convNet()
+        elif backbone == "resnet18":
+            model = ResNet18(num_classes, input_channel, pretrained,
+                             selected_layer=selected_layer)
         elif backbone == "vgg16":
             model = VGG16(num_classes, input_channel, pretrained, dropout,
                           conv_bias, linear_bias,
@@ -44,6 +49,32 @@ class Network(nn.Module):
         if guidedReLU:
             recursive_relu_apply(self.model)
             print("Using GuidedReLu.")
+
+    def hook_forward(self, activation_maps):
+        def forward_hook_fn(module, inputs, outputs):
+            """Hook forward function.
+            """
+            outputs_cpu = outputs.detach().clone().cpu().numpy()
+            activation_maps.append(outputs_cpu)
+
+        for name, module in self.model.named_modules():
+            new_name = name.replace("resnet18.", "")
+            print(new_name)
+            if new_name == str(self.selected_layer):
+                print("=> Register fhook {}".format(new_name))
+                handler = module.register_forward_hook(forward_hook_fn)
+                self.fn_handler.append(handler)
+
+    def get_activation_maps(self, inputs, selected_layer):
+        self.selected_layer = selected_layer
+        self.activation_maps = []
+        self.fn_handler = []
+        self.hook_forward(self.activation_maps)
+        self.model(inputs)
+        for handler in self.fn_handler:
+            handler.remove()
+
+        return self.activation_maps
 
 
 class AlexNet(nn.Module):

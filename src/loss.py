@@ -29,7 +29,8 @@ class FilterLoss(nn.Module):
                  inter=False, rho=0, regularization="None", p=None,
                  smoothing="None", _print=None, defensed=False):
         super(FilterLoss, self).__init__()
-        self.model = model.model.features
+        # self.model = model.model.features
+        self.model = model.model
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
         self.mode = mode
@@ -75,9 +76,18 @@ class FilterLoss(nn.Module):
             """
             activation_maps.append(outputs)
 
-        for name, module in self.model.named_children():
-            if isinstance(module, nn.ReLU):
-                print("=> Register fhook {}".format(name))
+        if self.defensed:
+            for name, module in self.model.named_children():
+                if isinstance(module, nn.ReLU):
+                    self._print("=> Register fhook {}".format(name))
+                    handler = module.register_forward_hook(forward_hook_fn)
+                    self.forward_hook_handler.append(handler)
+
+        for name, module in self.named_modules():
+            new_name = name.replace("model.resnet18.", "")
+            new_name = new_name.replace("model.features.", "")
+            if new_name == str(self.selected_layer):
+                self._print("=> Register fhook {}".format(new_name))
                 handler = module.register_forward_hook(forward_hook_fn)
                 self.forward_hook_handler.append(handler)
 
@@ -87,16 +97,13 @@ class FilterLoss(nn.Module):
         def remove_forward_hook_fn():
             for handler in self.forward_hook_handler:
                 handler.remove()
-                print("=> Remove fhook {}".format(handler))
+                self._print("=> Remove fhook {}".format(handler))
             self.forward_hook_handler = []
         remove_forward_hook_fn()
 
     def hook_backward(self):
         def backward_hook_fn(module, grad_in, grad_out):
             grad_output = grad_out[0]
-            # print(len(self.original_activation_maps))
-            # print(len(self.processed_activation_maps))
-            # print(grad_output.size())
             o_activation_map = self.original_activation_maps.pop()
             p_activation_map = self.processed_activation_maps.pop()
             positive_mask_1 = (p_activation_map > 0).type_as(grad_output)
@@ -141,38 +148,35 @@ class FilterLoss(nn.Module):
             regularization_loss:
             smoothing_loss:
         """
-        if self.defensed:
-            self.remove_hook_forward()
-            # print(self.forward_hook_handler)
-            self.hook_forward(self.original_activation_maps)
+        self.original_activation_maps = []
+        self.processed_activation_maps = []
+
+        self.remove_hook_forward()
+        self.hook_forward(self.original_activation_maps)
+
         # Obtain original tensors
         original_outputs = original_inputs
-        for index, layer in enumerate(self.model):
-            original_outputs = layer(original_outputs)
+        # for index, layer in enumerate(self.model):
+        #     original_outputs = layer(original_outputs)
         #     if index == self.selected_layer:
         #         break
-        # original_outputs = self.model(original_inputs)
+        original_outputs = self.model(original_inputs)
 
         selected_original_feature_map = \
-            original_outputs[:, self.selected_filter]
+            self.original_activation_maps[0][:, self.selected_filter]
+        # original_outputs[:, self.selected_filter]
         # processed_outputs = self.model(processed_inputs)
 
-        # print(self.original_activation_map[0].size())
-        # print(self.processed_activation_map[0].size())
-        # print(self.forward_hook_handler)
-
-        if self.defensed:
-            self.remove_hook_forward()
-            # print(self.forward_hook_handler)
-            self.hook_forward(self.processed_activation_maps)
+        # if self.defensed:
+        self.remove_hook_forward()
+        self.hook_forward(self.processed_activation_maps)
         processed_outputs = processed_inputs
-        for index, layer in enumerate(self.model):
-            processed_outputs = layer(processed_outputs)
-            # if index == self.selected_layer:
-            #     break
+        processed_outputs = self.model(processed_outputs)
+        # for index, layer in enumerate(self.model):
+        #     processed_outputs = layer(processed_outputs)
+        #     if index == self.selected_layer:
+        #         break
 
-        # print(self.original_activation_map[0].size())
-        # print(self.processed_activation_map[0].size())
         # print(self.forward_hook_handler)
         # self.conv_output = processed_outputs
 
@@ -182,12 +186,17 @@ class FilterLoss(nn.Module):
 
         # Concat tensor along the channels
         rest_processed_feature_map = \
-            torch.cat((processed_outputs[:, :self.selected_filter],
-                       processed_outputs[:, self.selected_filter+1:]),
-                      dim=1)
+            torch.cat(
+                (self.processed_activation_maps[0][:, :self.selected_filter],
+                 self.processed_activation_maps[0][:,
+                                                   self.selected_filter+1:]),
+                dim=1)
+        # torch.cat((processed_outputs[:, :self.selected_filter],
+        #            processed_outputs[:, self.selected_filter+1:]),
         # print(rest_processed_feature_map.size())
         selected_processed_feature_map = \
-            processed_outputs[:, self.selected_filter]
+            self.processed_activation_maps[0][:, self.selected_filter]
+        # processed_outputs[:, self.selected_filter]
         # print("selected_processed_feature_map:",
         # selected_processed_feature_map.size())
         *_, height, width = selected_processed_feature_map.size()
@@ -213,18 +222,23 @@ class FilterLoss(nn.Module):
                                                dim=(2, 3), p=1)
             rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
             rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
-        # elif self.mode == "remove":
-        #     selected_feature_map_norm = \
-        #         torch.norm(selected_processed_feature_map, dim=(1, 2), p=1)
-        #     selected_filter_loss = torch.mean(selected_feature_map_norm)
-        #     rest_original_feature_map = \
-        #         torch.cat((self.conv_output[:, :self.selected_filter],
-        #                    self.conv_output[:, self.selected_filter+1:]),
-        #                   dim=1)
-        #     rest_filter_loss = torch.norm((rest_original_feature_map -
-        #                                   rest_processed_feature_map),
-        #                                   dim=(2, 3), p=2)
-        #     rest_filter_loss = torch.mean(rest_filter_loss)
+        elif self.mode == "remove":
+            rest_original_feature_map = \
+                torch.cat((original_outputs[:, :self.selected_filter],
+                           original_outputs[:, self.selected_filter+1:]),
+                          dim=1)
+            selected_filter_norm = torch.norm((rest_processed_feature_map -
+                                               rest_original_feature_map),
+                                              dim=(2, 3), p=2)
+            selected_filter_square = selected_filter_norm ** 2
+            selected_filter_square_avg = selected_filter_square /\
+                (height * width)
+            selected_filter_loss = torch.mean(selected_filter_square_avg)
+
+            rest_feature_map_norm = torch.norm(selected_processed_feature_map,
+                                               dim=(1, 2), p=1)
+            rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
+            rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
         else:
             print("No loss function of mode available")
             sys.exit(-1)

@@ -2,6 +2,8 @@
 """
 
 import torch.nn as nn
+from torchvision.models.utils import load_state_dict_from_url
+
 
 from .BasicComponent import VGGConv, VGGMaxPool, Reshape, VGGMaxUnpool, \
     VGGConvTranspose
@@ -31,7 +33,7 @@ class Encoder(nn.Module):
             VGGMaxPool()
         )
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        self.dfc = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Linear(512 * 7 * 7, 4096),
             nn.ReLU(True),
             nn.Dropout(),
@@ -40,6 +42,11 @@ class Encoder(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, embedding_size)
         )
+        # self.load_state_dict(load_state_dict_from_url(
+        #     'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth',
+        #     progress=False))
+        self.dfc = self.classifier
+        del self.classifier
 
     def forward(self, inputs):
         output = self.features[0:6](inputs)
@@ -61,6 +68,29 @@ class Encoder(nn.Module):
         output = output.view(output.size(0), -1)
         output = self.dfc(output)
         return output, ies_1, ies_2, ies_3, ies_4, ies_5
+
+    def get_embeddings(self, inputs):
+        """Get embeddings form hidden space.
+        """
+        output = self.features[0:6](inputs)
+        output, ies_1 = self.features[6](output)
+
+        output = self.features[7:13](output)
+        output, ies_2 = self.features[13](output)
+
+        output = self.features[14:23](output)
+        output, ies_3 = self.features[23](output)
+
+        output = self.features[24:33](output)
+        output, ies_4 = self.features[33](output)
+
+        output = self.features[34:43](output)
+        output, ies_5 = self.features[43](output)
+
+        output = self.avgpool(output)
+        output = output.view(output.size(0), -1)
+        output = self.dfc(output)
+        return output
 
 
 class Decoder(nn.Module):
@@ -134,14 +164,16 @@ class Autoencoder(nn.Module):
     """Autoencoder based on VGG16.
     """
     def __init__(self, embedding_size=3, num_classes=47,
-                 freesze_encoder=False):
+                 freeze_encoder=False):
         super(Autoencoder, self).__init__()
-        self.encoder = Encoder()
-        self.decoder = Decoder()
+        self.encoder = Encoder(embedding_size=embedding_size)
+        self.decoder = Decoder(embedding_size=embedding_size)
         self.classifier = nn.Sequential(
             nn.ReLU(True),
             nn.Linear(embedding_size, num_classes)
         )
+        if freeze_encoder:
+            self.freeze_encoder()
 
     def forward(self, inputs):
         """Forward.
@@ -152,6 +184,12 @@ class Autoencoder(nn.Module):
         preds = self.classifier(output)
         output = self.decoder(output, indicies)
         return output, preds
+
+    def get_embeddings(self, inputs):
+        """Get embeddings from hidden space in the encoder.
+        """
+        output = self.encoder.get_embeddings(inputs)
+        return output
 
     def freeze_encoder(self):
         """Freeze parameters in encoder.
