@@ -11,7 +11,7 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=30
-server=desktop
+server=ls15
 delta=0
 eval_frequency=10000
 # -------------------------------
@@ -20,7 +20,7 @@ n_epochs=300000
 
 cuda_visible_devices=0
 selected_layer=relu
-selected_filter=16
+selected_filter=5
 alpha=100000
 beta=1
 gamma=10000

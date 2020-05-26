@@ -23,7 +23,8 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            conv_output_index_dict=None,
                                            save_dict=None, plt_mode="real",
                                            top_k=10, layer_max_min=None,
-                                           color_map="gray", is_save=True):
+                                           color_map="gray", is_save=True,
+                                           layer_name=None):
     """Visulize feature map for comparision!!
     Args:
         img_index:
@@ -101,13 +102,13 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                          loc="center", pad=1.0, fontdict=font)
             index += 1
     # show figure
-    fig.suptitle("Layer-{}".format(layer_index), fontsize=8,
+    fig.suptitle("Layer-{}".format(layer_name), fontsize=8,
                  verticalalignment="bottom")
     plt.tight_layout()
 
     if is_save:
         file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
-                                 format(layer_index, save_dict["index2image"]
+                                 format(layer_name, save_dict["index2image"]
                                         [img_index]))
         plt.savefig(file_name)
         print("Successfully Save pdf to {}".format(file_name))
@@ -118,7 +119,8 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
                            cols=8, conv_output_index_dict=None,
                            save_dict=None, is_save=False,
                            save_original=False, plt_mode="real", top_k=10,
-                           layer_max_min=None, color_map="gray"):
+                           layer_max_min=None, color_map="gray",
+                           layer_name=None):
     """Visualize feature map.
     Args:
         img_index:
@@ -187,7 +189,7 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
     top_k_key = heapq.nlargest(top_k, max_values, key=max_values.get)
     print("Top-k => {}".format(top_k_key))
     fig.suptitle("Image-{}-Layer-{}--[{:.1f}-{:.1f}]".format(img_index,
-                 layer_index, layer_min, layer_max), fontsize=8)
+                 layer_name, layer_min, layer_max), fontsize=8)
     # plt.tight_layout()
     if is_save:
         file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
@@ -200,7 +202,7 @@ def visualize_features_map(img_index: int, layer_index: int, features_map,
     if save_original:
         save_name = save_dict["save_name"].split(".")[0]
         directory = os.path.join(save_dict["save_dir"], save_name.format(
-            layer_index, save_dict["index2image"][img_index]
+            layer_name, save_dict["index2image"][img_index]
         ))
         save_under_directory(features_map[img_index, :, :, :], directory)
 
