@@ -29,7 +29,6 @@ class FilterLoss(nn.Module):
                  inter=False, rho=0, regularization="None", p=None,
                  smoothing="None", _print=None, defensed=False):
         super(FilterLoss, self).__init__()
-        # self.model = model.model.features
         self.model = model.model
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
@@ -155,12 +154,13 @@ class FilterLoss(nn.Module):
         self.hook_forward(self.original_activation_maps)
 
         # Obtain original tensors
-        original_outputs = original_inputs
+        # original_outputs = original_inputs
         # for index, layer in enumerate(self.model):
         #     original_outputs = layer(original_outputs)
         #     if index == self.selected_layer:
         #         break
-        original_outputs = self.model(original_inputs)
+        # original_outputs =
+        self.model(original_inputs)
 
         selected_original_feature_map = \
             self.original_activation_maps[0][:, self.selected_filter]
@@ -170,8 +170,8 @@ class FilterLoss(nn.Module):
         # if self.defensed:
         self.remove_hook_forward()
         self.hook_forward(self.processed_activation_maps)
-        processed_outputs = processed_inputs
-        processed_outputs = self.model(processed_outputs)
+        # processed_outputs =
+        self.model(processed_inputs)
         # for index, layer in enumerate(self.model):
         #     processed_outputs = layer(processed_outputs)
         #     if index == self.selected_layer:
@@ -222,23 +222,23 @@ class FilterLoss(nn.Module):
                                                dim=(2, 3), p=1)
             rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
             rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
-        elif self.mode == "remove":
-            rest_original_feature_map = \
-                torch.cat((original_outputs[:, :self.selected_filter],
-                           original_outputs[:, self.selected_filter+1:]),
-                          dim=1)
-            selected_filter_norm = torch.norm((rest_processed_feature_map -
-                                               rest_original_feature_map),
-                                              dim=(2, 3), p=2)
-            selected_filter_square = selected_filter_norm ** 2
-            selected_filter_square_avg = selected_filter_square /\
-                (height * width)
-            selected_filter_loss = torch.mean(selected_filter_square_avg)
+        # elif self.mode == "remove":
+        #     rest_original_feature_map = \
+        #         torch.cat((original_outputs[:, :self.selected_filter],
+        #                    original_outputs[:, self.selected_filter+1:]),
+        #                   dim=1)
+        #     selected_filter_norm = torch.norm((rest_processed_feature_map -
+        #                                        rest_original_feature_map),
+        #                                       dim=(2, 3), p=2)
+        #     selected_filter_square = selected_filter_norm ** 2
+        #     selected_filter_square_avg = selected_filter_square /\
+        #         (height * width)
+        #     selected_filter_loss = torch.mean(selected_filter_square_avg)
 
-            rest_feature_map_norm = torch.norm(selected_processed_feature_map,
-                                               dim=(1, 2), p=1)
-            rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
-            rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
+        #     rest_feature_map_norm = torch.norm(selected_processed_feature_map,
+        #                                        dim=(1, 2), p=1)
+        #     rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
+        #     rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
         else:
             print("No loss function of mode available")
             sys.exit(-1)

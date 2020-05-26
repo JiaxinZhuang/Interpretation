@@ -12,6 +12,7 @@ class ResNet18(nn.Module):
             if num_classes is 1000, use all original model.
         """
         super(ResNet18, self).__init__()
+        print("=> ResNet18 using pretrained: {}".format(pretrained))
         self.resnet18 = torchvision.models.resnet18(pretrained=pretrained)
 
         self.selected_layer = selected_layer

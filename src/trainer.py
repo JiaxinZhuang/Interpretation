@@ -70,6 +70,7 @@ def main():
     guidedReLU = configs_dict["guidedReLU"]
     defensed = configs_dict["defensed"]
     avg = configs_dict["avg"]
+    initialization = configs_dict["initialization"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -216,7 +217,7 @@ def main():
     if batch_size == 1:
         _print("Used single image mode.")
         images = [images[img_index]]
-        label = [labels[img_index]]
+        labels = [labels[img_index]]
         imgs_path = [imgs_path[img_index]]
 
     original_images = torch.cat(images, dim=0).to(device)
@@ -229,8 +230,13 @@ def main():
 #                                    resize=re_size, device=device)
 # original_image = processed_image.clone().detach()
 
+    if initialization == "pretrained":
+        pretrained = True
+    else:
+        pretrained = False
     net = model.Network(backbone=backbone, num_classes=num_classes,
-                        selected_layer=selected_layer, guidedReLU=guidedReLU)
+                        selected_layer=selected_layer, guidedReLU=guidedReLU,
+                        pretrained=pretrained)
 
     if avg:
         _print("Replace maxpool with avgpool.")

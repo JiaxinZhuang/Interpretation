@@ -11,14 +11,14 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=30
-server=ls15
+server=ls97
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
 n_epochs=300000
 
-cuda_visible_devices=0
+cuda_visible_devices=8
 selected_layer=relu
 selected_filter=5
 alpha=100000
@@ -26,6 +26,7 @@ beta=1
 gamma=10000
 guidedReLU=False
 backbone=resnet18
+initialization="pretrained"
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -57,4 +58,5 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --rescale=False \
     --guidedReLU $guidedReLU \
+    --initialization $initialization\
     2>&1 | tee $log_file

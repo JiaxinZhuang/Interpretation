@@ -35,7 +35,6 @@ def main(exp, epoch, layer_name, img_index=12):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # model
-    net = model.Network(backbone=backbone, num_classes=1000)
     net = model.Network(backbone=backbone, num_classes=1000, activations=True,
                         pretrained=True)
     net.to(device)

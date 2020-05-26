@@ -59,7 +59,6 @@ class Network(nn.Module):
 
         for name, module in self.model.named_modules():
             new_name = name.replace("resnet18.", "")
-            print(new_name)
             if new_name == str(self.selected_layer):
                 print("=> Register fhook {}".format(new_name))
                 handler = module.register_forward_hook(forward_hook_fn)
@@ -73,7 +72,7 @@ class Network(nn.Module):
         self.model(inputs)
         for handler in self.fn_handler:
             handler.remove()
-
+        self.forward_hook_handler = []
         return self.activation_maps
 
 
