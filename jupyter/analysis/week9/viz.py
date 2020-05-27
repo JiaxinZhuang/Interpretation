@@ -38,6 +38,7 @@ def main(exp, epoch, layer_name, img_index=12):
     net = model.Network(backbone=backbone, num_classes=1000, activations=True,
                         pretrained=True)
     net.to(device)
+    net.eval()
 
     # Load data
     mean = [0.485, 0.456, 0.406]

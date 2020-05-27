@@ -16,8 +16,7 @@ class Network(nn.Module):
     """
     def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
                  pretrained=False, dropout=True, conv_bias=True,
-                 linear_bias=True, guidedReLU=False, selected_layer=None,
-                 activations=False):
+                 linear_bias=True, guidedReLU=False, selected_layer=None):
         super(Network, self).__init__()
         if backbone == "alexnet":
             model = AlexNet(num_classes, input_channel)
@@ -59,6 +58,7 @@ class Network(nn.Module):
 
         for name, module in self.model.named_modules():
             new_name = name.replace("resnet18.", "")
+            new_name = new_name.replace("features.", "")
             if new_name == str(self.selected_layer):
                 print("=> Register fhook {}".format(new_name))
                 handler = module.register_forward_hook(forward_hook_fn)

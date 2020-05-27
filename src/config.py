@@ -162,7 +162,7 @@ class Config:
         self.parser.add_argument("--regular_ex", default=1, type=float,
                                  help="When using TotalVariation, exponential\
                                        for regularization.")
-        self.parser.add_argument("--img_index", default=0, type=int,
+        self.parser.add_argument("--img_index", default=-1, type=int,
                                  help="Img index to use. Batch_size has to be\
                                  1 when to be used.")
         self.parser.add_argument("--server", default="local", type=str,

@@ -15,7 +15,7 @@ delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
-n_epochs=300000
+n_epochs=10
 
 #cuda_visible_devices=0
 selected_layer=1

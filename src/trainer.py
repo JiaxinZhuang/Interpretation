@@ -19,6 +19,9 @@ from utils.function import init_logging, init_environment, recreate_image, \
         get_lr, save_image, dataname_2_save, get_grad_norm, timethis, \
         save_numpy
 from utils.early_stopping import EarlyStopping
+# from utils.visualizations import visualize_comparision_vgg16,\
+#     visualize_comparision_resNet18
+from utils.visualizations.visualize import visualize
 from model import replace_layer
 from loss import FilterLoss
 from datasets import imagenet
@@ -366,9 +369,18 @@ def main():
                                              rescale=rescale)
                 save_image(recreate_im, save_path)
                 _print("save generated image in {}".format(save_path))
-            if is_break:
-                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
-                break
+            if is_break or epoch+1 == n_epochs:
+                ori_activation_maps = net.get_activation_maps(original_images,
+                                                              selected_layer)
+                opt_activation_maps = net.get_activation_maps(processed_images,
+                                                              selected_layer)
+                visualize(ori_activation_maps, opt_activation_maps,
+                          img_index=img_index, layer_name=selected_layer,
+                          backbone=backbone, num_classes=num_classes,
+                          exp=exp, imgs_path=imgs_path)
+                if is_break:
+                    _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
+                    break
 
     _print("Finish Training")
 

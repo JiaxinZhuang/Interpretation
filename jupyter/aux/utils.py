@@ -1,6 +1,7 @@
 """Utils.py
     Functions for visualization
 """
+__all__ = ['obtain_features_map', 'load_imgs', 'zscore', 'extract_valid']
 
 import os
 import sys

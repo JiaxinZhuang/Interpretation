@@ -9,3 +9,5 @@ matplotlib
 pandas
 seaborn
 jupyter
+plotly
+DISTS_pytorch==0.1
