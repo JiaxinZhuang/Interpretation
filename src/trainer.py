@@ -278,7 +278,7 @@ def main():
         sys.exit(-1)
 
     start_epoch = 0
-    if resume:
+    if resume and backbone == "vgg16":
         resume_exp = resume.split("-")[0]
         resume_epoch = resume.split("-")[1]
         _print("Resume from model from exp: {} at epoch {}".
@@ -376,7 +376,7 @@ def main():
                                                               selected_layer)
                 visualize(ori_activation_maps, opt_activation_maps,
                           img_index=img_index, layer_name=selected_layer,
-                          backbone=backbone, num_classes=num_classes,
+                          backbone=backbone, num_class=num_class,
                           exp=exp, imgs_path=imgs_path)
                 if is_break:
                     _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))

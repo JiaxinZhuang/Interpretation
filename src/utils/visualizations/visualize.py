@@ -1,16 +1,20 @@
 """Visualize.
 """
 
-# import visualize_comparision_resNet18
-# import visualize_comparision_vgg16
 import sys
 import os
+import numpy as np
+from PIL import Image
+import PIL
+from matplotlib import pyplot as plt
+
+
 sys.path.append("jupyter/")
 from aux.visualization import visualize_features_map_for_comparision
 
 
 def visualize(ori_activation_maps, opt_activation_maps,
-              img_index=-1, layer_name="relu", backbone=None, num_classes=30,
+              img_index=-1, layer_name="relu", backbone=None, num_class=30,
               exp=-1, imgs_path=None):
     color_map = "nipy_spectral"
     layer_index = 0
@@ -37,7 +41,7 @@ def visualize(ori_activation_maps, opt_activation_maps,
             save_dict=save_dict, is_save=True,
             plt_mode="img_scale", color_map=color_map, layer_name=layer_name)
     else:
-        for index in range(num_classes):
+        for index in range(num_class):
             visualize_features_map_for_comparision(
                 img_index=index, layer_index=layer_index,
                 features_map=ori_activation_maps,
@@ -46,3 +50,107 @@ def visualize(ori_activation_maps, opt_activation_maps,
                 save_dict=save_dict, is_save=True,
                 plt_mode="img_scale", color_map=color_map,
                 layer_name=layer_name)
+
+
+def preprocess_arrays(original_image, opt_image,
+                      ori_activation_maps, opt_activation_maps,
+                      color_map="nipy_spectral"):
+    """Preprocess arrays.
+    Output same shape.
+
+    Args:
+        original_image: [batch_size, 3, 224, 224]
+        opt_image: [batch_size, 3, 224, 224]
+        ori_activation_maps: [batch_size, height, width]
+        opt_activation_maps: [batch_size, height, width]
+    """
+    # original_image_cpu = original_image.detach().clone().cpu().numpy()
+    # opt_image_cpu = opt_image.detach().clone().cpu().numpy()
+    original_image_cpu = original_image.copy()
+    opt_image_cpu = opt_image.copy()
+    ori_activation_maps_cpu = ori_activation_maps.copy()
+    opt_activation_maps_cpu = opt_activation_maps.copy()
+
+    ori_activation_maps_cpu = np.expand_dims(ori_activation_maps_cpu, axis=1)
+    opt_activation_maps_cpu = np.expand_dims(opt_activation_maps_cpu, axis=1)
+
+    if original_image_cpu.shape[3] != 3:
+        original_image_cpu = np.transpose(original_image_cpu, (0, 2, 3, 1))
+
+    if opt_image_cpu.shape[3] != 3:
+        opt_image_cpu = np.transpose(opt_image_cpu, (0, 2, 3, 1))
+
+    ori_activation_maps_cpu = np.transpose(ori_activation_maps_cpu,
+                                           (0, 2, 3, 1))
+    opt_activation_maps_cpu = np.transpose(opt_activation_maps_cpu,
+                                           (0, 2, 3, 1))
+
+    ori_activation_maps_cpu_old = ori_activation_maps_cpu.copy()
+    opt_activation_maps_cpu_old = opt_activation_maps_cpu.copy()
+    ori_activation_maps_cpu = []
+    opt_activation_maps_cpu = []
+
+    # generate color map from gray images.
+    for ori, opt in zip(ori_activation_maps_cpu_old,
+                        opt_activation_maps_cpu_old):
+        pixel_max = np.max(ori)
+        pixel_min = np.min(opt)
+        colored_ori = generate_colormap(ori, pixel_max, pixel_min, color_map)
+        colored_opt = generate_colormap(opt, pixel_max, pixel_min, color_map)
+        ori_activation_maps_cpu.append(colored_ori)
+        opt_activation_maps_cpu.append(colored_opt)
+
+    # ori_activation_maps_cpu = np.repeat(ori_activation_maps_cpu, 3, axis=3)
+    # opt_activation_maps_cpu = np.repeat(opt_activation_maps_cpu, 3, axis=3)
+    ori_activation_maps_cpu = np.squeeze(ori_activation_maps_cpu)[..., :3]
+    opt_activation_maps_cpu = np.squeeze(opt_activation_maps_cpu)[..., :3]
+
+    original_image_cpu = (original_image_cpu * 255.0).astype(np.uint8)
+    opt_image_cpu = (opt_image_cpu * 255.0).astype(np.uint8)
+    ori_activation_maps_cpu = (ori_activation_maps_cpu * 255.0).\
+        astype(np.uint8)
+    opt_activation_maps_cpu = (opt_activation_maps_cpu * 255.0).\
+        astype(np.uint8)
+
+    return original_image_cpu, opt_image_cpu, ori_activation_maps_cpu, \
+        opt_activation_maps_cpu
+
+
+def concat_imgs(original_image_cpu, opt_image_cpu,
+                ori_activation_maps_cpu, opt_activation_maps_cpu):
+    """Concat imgs for batches.
+    Args: unsigned int 8
+        original_image: [batch_size, 3, height, width]
+        opt_image: [batch_size, 3, height, width]
+        ori_activation_maps: [batch_size, height, width]
+        opt_activation_maps: [batch_size, height, width]
+    """
+    width = height = 224
+
+    out_array = None
+
+    for ori, opt, ori_ac, opt_ac in zip(original_image_cpu, opt_image_cpu,
+                                        ori_activation_maps_cpu,
+                                        opt_activation_maps_cpu):
+        ori_ac = Image.fromarray(ori_ac).\
+            resize((width, height), PIL.Image.BICUBIC)
+        opt_ac = Image.fromarray(opt_ac).\
+            resize((height, width), PIL.Image.BICUBIC)
+
+        new_cols = np.hstack((ori, opt, ori_ac, opt_ac))
+        if out_array is None:
+            out_array = new_cols
+        else:
+            out_array = np.vstack((out_array, new_cols))
+    out_array = out_array.astype(np.uint8)
+    concated_imgs = Image.fromarray(out_array, mode="RGB")
+    return concated_imgs
+
+
+def generate_colormap(featureMap, pixel_max, pixel_min,
+                      color_map="nipy_spectral"):
+    """Generate colormap.
+    """
+    cm = plt.get_cmap(color_map)
+    colored_featureMap = cm(featureMap)
+    return colored_featureMap
