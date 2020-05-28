@@ -26,6 +26,7 @@ beta=1
 gamma=1
 guidedReLU=False
 backbone=resnet18
+initialization="pretrained"
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -57,12 +58,5 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --rescale=False \
     --guidedReLU $guidedReLU \
+    --initialization $initialization\
     2>&1 | tee $log_file
-dir=./saved/generated
-subdir=$dir/$experiment_index
-last_epoch=$subdir`ls $subdir | sort -n | sed -n '$p'`
-python -u src/utils/visualizations/visualize_comparision_resNet18.py \
-    --exp $experiment_index \
-    --layer $selected_layer \
-    --epoch $last_epoch\
-    --img_index -1 2>&1 | tee -a $log_file

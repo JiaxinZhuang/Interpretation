@@ -18,7 +18,7 @@ eval_frequency=10000
 # Variables
 n_epochs=300000
 
-cuda_visible_devices=6
+cuda_visible_devices=8
 selected_layer=relu
 selected_filter=5
 alpha=100000
@@ -60,11 +60,3 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --guidedReLU $guidedReLU \
     --initialization $initialization\
     2>&1 | tee $log_file
-dir=./saved/generated
-subdir=$dir/$experiment_index
-last_epoch=$subdir`ls $subdir | sort -n | sed -n '$p'`
-python -u src/utils/visualizations/visualize_comparision_resNet18.py \
-    --exp $experiment_index \
-    --layer $selected_layer \
-    --epoch $last_epoch\
-    --img_index -1 2>&1 | tee -a $log_file
