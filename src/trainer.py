@@ -302,11 +302,17 @@ def main():
     for epoch in range(start_epoch, n_epochs):
         opt.zero_grad()
         selected_filter_loss, rest_fileter_loss, regularization_loss,  \
-            smoothing_loss = criterion(processed_images, original_images)
+            smoothing_loss, rest_filter_loss_interact = \
+            criterion(processed_images, original_images)
         # if alpha != 0 and (1-alpha) != 0:
         # use beat to omit gradient from rest_filter_loss
-        loss = alpha * selected_filter_loss + beta * rest_fileter_loss + \
-            gamma * regularization_loss + delta * smoothing_loss
+        if criterion.inter:
+            loss = alpha * selected_filter_loss + \
+                beta * rest_filter_loss_interact + \
+                gamma * regularization_loss + delta * smoothing_loss
+        else:
+            loss = alpha * selected_filter_loss + beta * rest_fileter_loss + \
+                gamma * regularization_loss + delta * smoothing_loss
         loss.backward()
 
         # Clip gradient using maximum value

@@ -203,11 +203,10 @@ class FilterLoss(nn.Module):
         # pixels = height * width
 
         # Whether to use interact to ignore some feature map
-        # if self.inter:
-        #     self._print("Inter")
-        #     rest_processed_feature_map = \
-        #         self.interact(selected_original_feature_map,
-        #                       rest_processed_feature_map)
+        # TODO, need to return two rest
+        rest_processed_feature_map_interact = \
+            self.interact(selected_original_feature_map,
+                          rest_processed_feature_map)
 
         if self.mode == "keep":
             selected_filter_norm = torch.norm((selected_original_feature_map -
@@ -220,8 +219,16 @@ class FilterLoss(nn.Module):
 
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
                                                dim=(2, 3), p=1)
-            rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
+            rest_feature_map_norm_avg = rest_feature_map_norm /\
+                (height * width)
             rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
+            # intetact
+            rest_feature_map_norm_interact = torch.norm(
+                rest_processed_feature_map_interact, dim=(2, 3), p=1)
+            rest_feature_map_norm_avg_interact = \
+                rest_feature_map_norm_interact / (height * width)
+            rest_filter_loss_interact = \
+                torch.mean(rest_feature_map_norm_avg_interact)
         # elif self.mode == "remove":
         #     rest_original_feature_map = \
         #         torch.cat((original_outputs[:, :self.selected_filter],
@@ -235,10 +242,10 @@ class FilterLoss(nn.Module):
         #         (height * width)
         #     selected_filter_loss = torch.mean(selected_filter_square_avg)
 
-        #     rest_feature_map_norm = torch.norm(selected_processed_feature_map,
-        #                                        dim=(1, 2), p=1)
-        #     rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
-        #     rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
+        #    rest_feature_map_norm = torch.norm(selected_processed_feature_map,
+        #                                       dim=(1, 2), p=1)
+        #    rest_feature_map_norm_avg = rest_feature_map_norm/(height * width)
+        #    rest_filter_loss = torch.mean(rest_feature_map_norm_avg)
         else:
             print("No loss function of mode available")
             sys.exit(-1)
@@ -249,7 +256,7 @@ class FilterLoss(nn.Module):
         smoothing_loss = 0.0
 
         return selected_filter_loss, rest_filter_loss, regularization_loss, \
-            smoothing_loss
+            smoothing_loss, rest_filter_loss_interact
 
     def interact(self, selected_feature_map, rest_processed_feature_map):
         """Interact between different channels.
@@ -259,9 +266,11 @@ class FilterLoss(nn.Module):
         Returns:
             rest_processed_feature_map: [batc_size, channels, height, width]
         """
+        if self.inter:
+            self._print("Inter")
         (batch_size, channels, height, width) = \
             rest_processed_feature_map.size()
-        selected_feature_map_rp = selected_feature_map.unsqueeze(1)
+        selected_feature_map_rp = selected_feature_map.clone().unsqueeze(1)
         selected_feature_map_rp = \
             selected_feature_map_rp.repeat(1, channels, 1, 1)
 
