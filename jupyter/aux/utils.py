@@ -127,7 +127,20 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
                        allow such situation.
     """
     try:
-        existed_imgs = os.listdir(ab_path)
+        # existed_imgs = os.listdir(ab_path)
+        existed_name = []
+        existed_imgs = {}
+        for root, directory, files in os.walk(ab_path):
+            if len(directory) == 0 and root.split("/")[-1] not in \
+                    ["0", "feature_map"]:
+                for afile in files:
+                    if afile.endswith("png") or afile.endswith("JPEG"):
+                        # img_path = os.path.join(root, afile)
+                        existed_name.append(afile)
+                        # existed_name.append(img_path)
+                        img_path = os.path.join(root, afile)
+                        existed_imgs[afile] = img_path
+                        # existed_imgs.append(img_path)
     except Exception:
         print("FileNotFoundError: {}".format(ab_path))
         return
@@ -137,11 +150,11 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
     for img_path in imgs_path:
         file_name = os.path.splitext(img_path.split("/")[-1])[0]
         file_name = file_name + ext
-        if non_exists_ok and file_name not in existed_imgs:
+        if non_exists_ok and file_name not in existed_name:
             valid_imgs_index.append(0)
             print("Skip {}".format(img_path))
             continue
-        file_path = os.path.join(ab_path, file_name)
+        file_path = existed_imgs[file_name]
         print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0
