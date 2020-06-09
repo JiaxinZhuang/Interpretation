@@ -295,7 +295,7 @@ class Config:
             self.config["data_dir"] = "/data15/Public/Datasets/"
         elif self.config["server"] == "ls16":
             self.config["data_dir"] = "/data16/Public/Datasets/"
-        elif self.config["server"] == "ls97":
+        elif self.config["server"] in ["ls97", "ls31"]:
             self.config["data_dir"] = "/data/Public/Datasets/"
         elif self.config["server"] == "desktop":
             self.config["data_dir"] = "/media/lincolnzjx/HardDisk/Datasets/"

@@ -9,22 +9,24 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
-class_index=968
+class_index=950
 num_class=30
-server=ls15
+server=desktop
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
 n_epochs=500000
 
-cuda_visible_devices=4
-selected_layer=3
-selected_filter=20
+cuda_visible_devices=0
+selected_layer=1
+selected_filter=16
 alpha=100000
-beta=10
-gamma=100
+beta=1
+gamma=10000
 guidedReLU=False
+inter=True
+seed=-1
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -48,7 +50,6 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --num_class=$num_class \
     --class_index=$class_index \
     --mode=keep \
-    --inter=False \
     --rho=0 \
     --regularization=L1 \
     --smoothing=TotalVariation \
@@ -56,4 +57,6 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --rescale=False \
     --guidedReLU $guidedReLU \
+    --seed $seed\
+    --inter $inter\
     2>&1 | tee $log_file

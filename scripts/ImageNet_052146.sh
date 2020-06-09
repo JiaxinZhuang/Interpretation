@@ -9,7 +9,7 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
-class_index=968
+class_index=878
 num_class=30
 server=ls15
 delta=0

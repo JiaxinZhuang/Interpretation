@@ -17,8 +17,8 @@ eval_frequency=10000
 # Variables
 n_epochs=1000000
 
-selected_layer=22
-selected_filter=485
+selected_layer=15
+selected_filter=148
 alpha=1
 beta=1
 gamma=1
@@ -33,7 +33,7 @@ do
     do
         img_index=$[$index+$cuda_visible_device]
         echo $img_index
-        CUDA_VISIBLE_DEVICES=$cuda_visible_device python -u src/trainer.py \
+        CUDA_VISIBLE_DEVICES=$[$cuda_visible_device+4] python -u src/trainer.py \
             --experiment_index=$experiment_index \
             --server=$server \
             --cuda=0 \

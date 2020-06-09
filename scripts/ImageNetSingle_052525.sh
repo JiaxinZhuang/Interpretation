@@ -10,15 +10,15 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=32
-server=ls16
+server=ls15
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
 n_epochs=1000000
 
-selected_layer=22
-selected_filter=485
+selected_layer=20
+selected_filter=398
 alpha=1
 beta=1
 gamma=1

@@ -8,23 +8,24 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
-class_index=950
+class_index=878
 num_class=32
 server=ls16
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
-n_epochs=1000000
+n_epochs=500000
 
-selected_layer=22
-selected_filter=485
-alpha=1
+selected_layer=1
+selected_filter=47
+alpha=100000
 beta=1
-gamma=1
+gamma=10000
 guidedReLU=False
 backbone=vgg16
 batch_size=1
+seed=-1
 
 
 for index in `seq 0 4 31`
@@ -33,7 +34,7 @@ do
     do
         img_index=$[$index+$cuda_visible_device]
         echo $img_index
-        CUDA_VISIBLE_DEVICES=$cuda_visible_device python -u src/trainer.py \
+        CUDA_VISIBLE_DEVICES=$[$cuda_visible_device+4] python -u src/trainer.py \
             --experiment_index=$experiment_index \
             --server=$server \
             --cuda=0 \
@@ -64,9 +65,9 @@ do
             --guidedReLU $guidedReLU \
             --img_index $img_index \
             --batch_size $batch_size\
+            --seed $seed\
             2>&1 | tee $log_file&
     done
 done
 wait
 echo 'Finish'
-

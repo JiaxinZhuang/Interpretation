@@ -7,7 +7,8 @@ tqdm
 tb-nightly
 matplotlib
 pandas
-seaborn
+seaborn==0.10.1
 jupyter
-plotly
+plotly==4.8.1
 DISTS_pytorch==0.1
+xlrd==1.2.0

@@ -10,21 +10,22 @@ dataset=ImageNet
 # -------------------------------
 class_index=950
 num_class=32
-server=ls16
+server=ls15
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
-n_epochs=1000000
+n_epochs=500000
 
-selected_layer=22
-selected_filter=485
+selected_layer=8
+selected_filter=99
 alpha=1
 beta=1
 gamma=1
 guidedReLU=False
 backbone=vgg16
 batch_size=1
+seed=-1
 
 
 for index in `seq 0 4 31`
@@ -64,6 +65,7 @@ do
             --guidedReLU $guidedReLU \
             --img_index $img_index \
             --batch_size $batch_size\
+            --seed $seed\
             2>&1 | tee $log_file&
     done
 done

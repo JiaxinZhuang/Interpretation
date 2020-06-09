@@ -18,13 +18,14 @@ eval_frequency=10000
 # Variables
 n_epochs=500000
 
-cuda_visible_devices=4
-selected_layer=3
-selected_filter=20
-alpha=100000
-beta=10
-gamma=100
+cuda_visible_devices=3
+selected_layer=8
+selected_filter=99
+alpha=100
+beta=1
+gamma=10
 guidedReLU=False
+seed=-1
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -56,4 +57,5 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --rescale=False \
     --guidedReLU $guidedReLU \
+    --seed $seed\
     2>&1 | tee $log_file

@@ -307,6 +307,7 @@ def main():
         # if alpha != 0 and (1-alpha) != 0:
         # use beat to omit gradient from rest_filter_loss
         if criterion.inter:
+            _print(">> Inter <<")
             loss = alpha * selected_filter_loss + \
                 beta * rest_filter_loss_interact + \
                 gamma * regularization_loss + delta * smoothing_loss
@@ -333,6 +334,8 @@ def main():
                           epoch)
         writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(),
                           epoch)
+        writer.add_scalar("Loss/rest_fileter_loss_interact",
+                          rest_filter_loss_interact.item(), epoch)
         writer.add_scalar("Loss/regularization_loss",
                           regularization_loss.item(),
                           epoch)
@@ -345,13 +348,15 @@ def main():
 
         writer.add_scalar("Lr", get_lr(opt), epoch)
         writer.add_scalar("Loss/total/", train_loss, epoch)
-        _print("selected_fileter_loss: {:.4f}".
+        _print("selected_fileter_loss: {:.8f}".
                format(selected_filter_loss.item()))
-        _print("rest_fileter_loss: {:.4f}".format(rest_fileter_loss.item()))
-        _print("regularization_loss: {:.4f}".
+        _print("rest_fileter_loss: {:.8f}".format(rest_fileter_loss.item()))
+        _print("regularization_loss: {:.8f}".
                format(regularization_loss.item()))
+        _print("rest_fileter_loss_interact: {:.8f}".
+               format(rest_filter_loss_interact.item()))
         # _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
-        _print("Epoch:{} - train loss: {:.4f}".format(epoch, train_loss))
+        _print("Epoch:{} - train loss: {:.8f}".format(epoch, train_loss))
 
         # early stopping
         is_break = False
