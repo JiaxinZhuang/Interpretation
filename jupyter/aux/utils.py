@@ -144,6 +144,7 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
     except Exception:
         print("FileNotFoundError: {}".format(ab_path))
         return
+    print(ab_path)
     out = []
     valid_imgs_path = []
     valid_imgs_index = []

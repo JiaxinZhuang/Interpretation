@@ -46,8 +46,8 @@ def init_environment(seed=0, cuda_id=0, _print=None):
         torch.manual_seed(seed)
         np.random.seed(seed)
     else:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
         _print("> Don't use seed")
 
 

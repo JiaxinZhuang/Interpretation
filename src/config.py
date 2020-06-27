@@ -67,7 +67,7 @@ class Config:
                                        for test only")
         self.parser.add_argument('--resume', default="001-215", type=str,
                                  help="resume exp and epoch")
-        self.parser.add_argument("--n_epochs", default=1000000, type=int,
+        self.parser.add_argument("--n_epochs", default=10000000, type=int,
                                  help="n epochs to train")
 
         self.parser.add_argument("--eval_frequency", default=1, type=int,

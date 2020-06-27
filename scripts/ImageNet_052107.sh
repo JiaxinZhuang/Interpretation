@@ -11,20 +11,21 @@ dataset=ImageNet
 # -------------------------------
 class_index=90
 num_class=30
-server=ls16
+server=ls15
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
-n_epochs=300000
+n_epochs=10000000
 
-cuda_visible_devices=5
+cuda_visible_devices=7
 selected_layer=27
 selected_filter=161
 alpha=1
 beta=1
 gamma=1
 guidedReLU=False
+seed=-1
 
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
@@ -56,4 +57,5 @@ CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u src/trainer.py \
     --delta=$delta \
     --rescale=False \
     --guidedReLU $guidedReLU \
+    --seed $seed\
     2>&1 | tee $log_file
