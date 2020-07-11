@@ -9,16 +9,16 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=ImageNet
 # -------------------------------
-class_index=878
+class_index=90
 num_class=30
-server=ls15
+server=ls16
 delta=0
 eval_frequency=10000
 # -------------------------------
 # Variables
 n_epochs=10000000
 
-cuda_visible_devices=4
+cuda_visible_devices=2
 selected_layer=15
 selected_filter=148
 alpha=1

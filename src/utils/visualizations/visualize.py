@@ -272,10 +272,13 @@ def concat_imgs(original_image_cpu, opt_image_cpu,
 
     # ori, opt, opt_scale, or_fm, opt_fm, diff_fm
     out_array = None
+    not_resize = None
     for ori, opt, ori_ac, opt_ac, opt_scale, diff in \
             zip(original_image_cpu, opt_image_cpu, ori_activation_maps_cpu,
                 opt_activation_maps_cpu, opt_image_cpu_scale,
                 diff_activation_maps_cpu):
+        new_col_not_resize = np.hstack((ori_ac, opt_ac))
+
         ori_ac = Image.fromarray(ori_ac).\
             resize((width, height), PIL.Image.BICUBIC)
         opt_ac = Image.fromarray(opt_ac).\
@@ -288,8 +291,17 @@ def concat_imgs(original_image_cpu, opt_image_cpu,
             out_array = new_cols
         else:
             out_array = np.vstack((out_array, new_cols))
+
+        if not_resize is None:
+            not_resize = new_col_not_resize
+        else:
+            not_resize = np.vstack((not_resize, new_col_not_resize))
+
     out_array = out_array.astype(np.uint8)
     concated_imgs = Image.fromarray(out_array, mode="RGB")
+
+    out_not_resize = not_resize.astype(np.uint8)
+    out_not_resize_img = Image.fromarray(out_not_resize, mode="RGB")
 
     # concated feature maps.
     out_array_fms = None
@@ -336,7 +348,7 @@ def concat_imgs(original_image_cpu, opt_image_cpu,
     out_imgs_fms = np.hstack((out_array, out_array_fms))
     out_imgs_fms = out_imgs_fms.astype(np.uint8)
     concated_imgs_fms = Image.fromarray(out_imgs_fms, mode="RGB")
-    return concated_imgs, concated_fms, concated_imgs_fms
+    return concated_imgs, concated_fms, concated_imgs_fms, out_not_resize_img
 
 
 def generate_colormap(featureMap, pixel_max, pixel_min,
