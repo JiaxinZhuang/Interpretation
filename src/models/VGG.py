@@ -74,3 +74,52 @@ class VGG16(nn.Module):
     #         if "bias" in name:
     #             param.bias.fill_(0)
     #             param.requires_grad_(False)
+
+
+class VGG11(nn.Module):
+    """Vgg11.
+    """
+    def __init__(self, num_classes, input_channel, pretrained=False,
+                 dropout=True, conv_bias=True, linear_bias=True,
+                 selected_layer=None):
+        super(VGG11, self).__init__()
+        vgg11 = torchvision.models.vgg11(pretrained=pretrained)
+        self.selected_layer = None
+
+        # Whether to remove some layers.
+        if selected_layer is not None:
+            self.selected_layer = int(selected_layer)
+            print("Only Keep {}th layers before.".format(selected_layer))
+            new_model = nn.Sequential(
+                *list(vgg11.features.children())[: self.selected_layer+1]
+            )
+            self.features = new_model
+            self.avgpool = None
+            self.fc = None
+        else:
+            print("Entire model.")
+            self.features = vgg11.features
+            self.avgpool = vgg11.avgpool
+            if num_classes == 1000:
+                self.fc = vgg11.classifier
+            else:
+                self.fc = nn.Sequential(
+                    *list(vgg11.classifier.children())[:-1],
+                    nn.Linear(4096, num_classes))
+
+        self.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1),
+                                     padding=(1, 1))
+        # if not dropout:
+        #     self.remove_dropout()
+        # if not conv_bias:
+        #     self.remove_conv_bias()
+        # if not linear_bias:
+        #     self.remove_linear_bias()
+
+    def forward(self, inputs):
+        out = self.features(inputs)
+        if self.selected_layer is None:
+            out = self.avgpool(out)
+            out = out.view(out.size(0), -1)
+            out = self.fc(out)
+        return out

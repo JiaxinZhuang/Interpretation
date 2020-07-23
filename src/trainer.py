@@ -96,12 +96,11 @@ def main():
         mean, std = (0.1307,), (0.3081,)
         reverse_mean = (-0.1307,)
         reverse_std = (1/0.3081,)
-        # train_transform = transforms.Compose([
-        #     transforms.Resize((re_size, re_size),
-        #     interpolation=Image.BILINEAR),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize((mean, ) , (std, ))
-        # ])
+        train_transform = transforms.Compose([
+            transforms.Resize((re_size, re_size)),
+            transforms.ToTensor(),
+            transforms.Normalize((mean, ), (std, ))
+        ])
         # val_transform = transforms.Compose([
         #     transforms.Resize((re_size, re_size),
         #     interpolation=Image.BILINEAR),

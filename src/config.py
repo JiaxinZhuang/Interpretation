@@ -91,7 +91,7 @@ class Config:
         self.parser.add_argument("--re_size", default=256, type=int,
                                  help="resize to the size")
         self.parser.add_argument("--backbone", default="resnet34", type=str,
-                                 choices=["resnet18", "vgg16"],
+                                 choices=["resnet18", "vgg16", "vgg11"],
                                  help="backbone for model")
         self.parser.add_argument("--warmup_epochs", default=-1, type=int,
                                  help="epochs to use warm up")

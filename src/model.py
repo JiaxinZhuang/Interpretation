@@ -5,8 +5,9 @@ from torchsummary import summary
 import copy
 
 from models.GuidedReLu import GuidedBackpropReLU
-from models.VGG import VGG16
+from models.VGG import VGG16, VGG11
 from models.ResNet import ResNet18
+from models.AlexNet import AlexNet
 from utils.initialization import _kaiming_normal, _xavier_normal, \
         _kaiming_uniform, _xavier_uniform
 
@@ -27,6 +28,11 @@ class Network(nn.Module):
                              selected_layer=selected_layer)
         elif backbone == "vgg16":
             model = VGG16(num_classes, input_channel, pretrained, dropout,
+                          conv_bias, linear_bias,
+                          selected_layer=selected_layer)
+        elif backbone == "vgg11":
+            # Used for MNIST.
+            model = VGG11(num_classes, input_channel, pretrained, dropout,
                           conv_bias, linear_bias,
                           selected_layer=selected_layer)
         else:
@@ -76,42 +82,6 @@ class Network(nn.Module):
         self.forward_hook_handler = []
         return self.activation_maps
 
-
-class AlexNet(nn.Module):
-    """AlexNet
-    """
-    def __init__(self, num_classes, input_channel):
-        super(AlexNet, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(64, 192, kernel_size=5, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(192, 384, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(384, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-        )
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Linear(4096, num_classes),
-        )
-
-    def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), 256 * 6 * 6)
-        x = self.classifier(x)
-        return x
 
 
 class convNet(nn.Module):
