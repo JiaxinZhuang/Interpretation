@@ -70,7 +70,7 @@ class ImageNet(torchvision.datasets.ImageFolder):
             self._print("Img Index: {}".format(index, img_path))
 
         img = default_loader(img_path)
-        if self.transform is not None:
+        if self.transform:
             img = self.transform(img)
 
         return img, target, img_path

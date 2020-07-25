@@ -156,7 +156,7 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
             print("Skip {}".format(img_path))
             continue
         file_path = existed_imgs[file_name]
-        print("Load from {}".format(file_path))
+        #print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0
         out.append(img)

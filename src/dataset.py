@@ -51,7 +51,9 @@ class MNIST(Dataset):
         if self.transform:
             img = self.transform(img)
         label = label.astype("int64")
-        return img, label,
+
+        img_path = "{}_{}.png".format(label, index)
+        return img, label, img_path
 
     def __len__(self):
         length = 0

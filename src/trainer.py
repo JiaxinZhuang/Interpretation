@@ -94,12 +94,13 @@ def main():
 
     if dataset_name == "mnist":
         mean, std = (0.1307,), (0.3081,)
+        # mean, std = 0.1307, 0.3081
         reverse_mean = (-0.1307,)
         reverse_std = (1/0.3081,)
         train_transform = transforms.Compose([
             transforms.Resize((re_size, re_size)),
             transforms.ToTensor(),
-            transforms.Normalize((mean, ), (std, ))
+            transforms.Normalize(mean, std)
         ])
         # val_transform = transforms.Compose([
         #     transforms.Resize((re_size, re_size),
@@ -107,12 +108,12 @@ def main():
         #     transforms.ToTensor(),
         #     transforms.Normalize((mean, ), (std, ))
         # ])
-        train_transform = None
         # val_transform = None
         trainset = dataset.MNIST(root="./data/", is_train=True,
                                  transform=train_transform)
         # valset = dataset.MNIST(root="./data/", is_train=False,
         #                        transform=val_transform)
+        num_classes = 200
     elif dataset_name == "CUB":
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]

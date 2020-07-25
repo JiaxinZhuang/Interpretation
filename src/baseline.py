@@ -93,7 +93,7 @@ def main():
                                  transform=train_transform)
         valset = dataset.MNIST(root=data_dir, is_train=False,
                                transform=val_transform)
-        num_classes = 200
+        num_classes = 10
         input_channel = 1
         metric_priority = "acc"
     elif dataset_name == "CUB":
