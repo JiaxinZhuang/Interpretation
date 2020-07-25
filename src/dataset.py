@@ -50,6 +50,7 @@ class MNIST(Dataset):
         img = Image.fromarray(img)
         if self.transform:
             img = self.transform(img)
+
         label = label.astype("int64")
 
         img_path = "{}_{}.png".format(label, index)

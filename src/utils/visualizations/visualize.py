@@ -16,7 +16,8 @@ from aux.visualization import visualize_features_map_for_comparision
 def visualize(ori_activation_maps, opt_activation_maps,
               img_index=-1, layer_name="relu", backbone=None, num_class=30,
               exp=-1, imgs_path=None):
-    color_map = "nipy_spectral"
+    #color_map = "nipy_spectral"
+    color_map = "jet"
     layer_index = 0
     conv_output_index_dict = {0: 0}
     index2image = {index: item.split("/")[-1].split(".")[0]
