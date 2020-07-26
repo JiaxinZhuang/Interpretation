@@ -90,6 +90,11 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                 # pixel_min = layer_max_min[list_index][0]
                 # plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
                 #          pixel_min=pixel_min)
+            elif plt_mode == "single":
+                pixel_max = layer_max
+                pixel_min = layer_min
+                plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=max_pixel_gt,
+                         pixel_min=min_pixel_gt, color_map=color_map)
             else:
                 sys.exit(-1)
 
@@ -253,6 +258,9 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
     if plt_mode == "real":
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "img_scale":
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
+    elif plt_mode == "single":
         cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "imgs_scale":
