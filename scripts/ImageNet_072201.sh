@@ -9,11 +9,11 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=mnist
 # -------------------------------
-epochs=100
+epochs=50
 server=ls97
 # -------------------------------
 # Variables
-cuda_visible_devices=2
+cuda_visible_devices=4
 model="vgg11"
 port=9998
 lr=1e-2

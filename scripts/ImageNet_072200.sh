@@ -9,7 +9,7 @@ experiment_index=${file_name##*_}
 experiment_index=${experiment_index%%.*}
 dataset=mnist
 # -------------------------------
-epochs=100
+epochs=50
 server=ls97
 # -------------------------------
 # Variables

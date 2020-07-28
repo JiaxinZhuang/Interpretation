@@ -113,7 +113,7 @@ def main():
                                  transform=train_transform)
         # valset = dataset.MNIST(root="./data/", is_train=False,
         #                        transform=val_transform)
-        num_classes = 200
+        num_classes = 10
     elif dataset_name == "CUB":
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -278,7 +278,7 @@ def main():
         sys.exit(-1)
 
     start_epoch = 0
-    if resume and backbone == "vgg16":
+    if resume and backbone in ["vgg11", "vgg16"]:
         resume_exp = resume.split("-")[0]
         resume_epoch = resume.split("-")[1]
         _print("Resume from model from exp: {} at epoch {}".

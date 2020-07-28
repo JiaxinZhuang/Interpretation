@@ -24,7 +24,8 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            save_dict=None, plt_mode="real",
                                            top_k=10, layer_max_min=None,
                                            color_map="gray", is_save=True,
-                                           layer_name=None):
+                                           layer_name=None,
+                                           selected_filter=None):
     """Visulize feature map for comparision!!
     Args:
         img_index:
@@ -56,8 +57,14 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
     index = 0
     layer_max = np.max(features_map[img_index, :, :, :])
     layer_min = np.min(features_map[img_index, :, :, :])
+    selected_feautre_map = np.array(features_map[img_index, :, :, index])
     for row in range(0, rows):
         for col in range(0, cols):
+            if selected_filter and index != selected_filter:
+                opt_features_map[img_index, :, :, index] = \
+                    opt_features_map[img_index, :, :, index] * \
+                    (selected_feautre_map <= 1e-2)
+
             # specify subplot and turn off axis
             ax = fig.add_subplot(gs[row, col*2: col*2+2])
             ax.set_xticks([])
@@ -120,11 +127,11 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
     plt.show()
 
 
-def visualize_features_map(img_index: int, layer_index: int, features_map,
-                           cols=8, conv_output_index_dict=None,
+def visualize_features_map(img_index: int, layer_index=0, features_map=None,
+                           cols=8, conv_output_index_dict={0: 0},
                            save_dict=None, is_save=False,
                            save_original=False, plt_mode="real", top_k=10,
-                           layer_max_min=None, color_map="gray",
+                           layer_max_min=None, color_map="jet",
                            layer_name=None):
     """Visualize feature map.
     Args:
@@ -261,7 +268,8 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
         cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "single":
-        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min + 1e-2)\
+            * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "imgs_scale":
         cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
