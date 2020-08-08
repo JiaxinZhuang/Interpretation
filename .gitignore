@@ -11,3 +11,6 @@ tags
 /src/models/__pycache__/*
 /jupyter/analysis/0407/pack/*
 /jupyter/analysis/week4/gt_pred/*
+/jupyter/Deconv/generated/*
+/jupyter/LRP/generated/*
+/jupyter/DeepDream/generated/*

@@ -131,32 +131,35 @@ def load_imgs(ab_path: str, imgs_path: list, non_exists_ok=False, ext=".png"):
         existed_name = []
         existed_imgs = {}
         for root, directory, files in os.walk(ab_path):
+            print(directory)
             if len(directory) == 0 and root.split("/")[-1] not in \
                     ["0", "feature_map"]:
                 for afile in files:
                     if afile.endswith("png") or afile.endswith("JPEG"):
-                        # img_path = os.path.join(root, afile)
                         existed_name.append(afile)
-                        # existed_name.append(img_path)
                         img_path = os.path.join(root, afile)
+                        afile = afile.replace("ddream_", "")
+                        afile = afile.replace("GuidedBPcolor_", "")
                         existed_imgs[afile] = img_path
-                        # existed_imgs.append(img_path)
     except Exception:
         print("FileNotFoundError: {}".format(ab_path))
         return
-    print(ab_path)
     out = []
     valid_imgs_path = []
     valid_imgs_index = []
     for img_path in imgs_path:
         file_name = os.path.splitext(img_path.split("/")[-1])[0]
         file_name = file_name + ext
-        if non_exists_ok and file_name not in existed_name:
+        dd_file_name = "ddream_" + file_name
+        bp_file_name = "GuidedBPcolor_" + file_name
+        if non_exists_ok and file_name not in existed_name and \
+                dd_file_name not in existed_name and \
+                bp_file_name not in existed_name:
             valid_imgs_index.append(0)
             print("Skip {}".format(img_path))
             continue
         file_path = existed_imgs[file_name]
-        #print("Load from {}".format(file_path))
+        # print("Load from {}".format(file_path))
         img = np.array(Image.open(file_path).convert("RGB")).astype("float32")
         img = img / 255.0
         out.append(img)
@@ -193,7 +196,8 @@ def zscore(optimized_data, mean, std):
     Return:
         optimized_data: [batch_size, channels, heights, width]
     """
-    if optimized_data.shape[1] != 3:
+    print(optimized_data.shape)
+    if optimized_data.shape[1] != 3 and optimized_data.shape[1] != 1:
         optimized_data = np.transpose(optimized_data.copy(), (0, 3, 1, 2))
     else:
         optimized_data = optimized_data.copy()

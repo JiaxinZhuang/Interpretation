@@ -46,8 +46,8 @@ def save_gradient_images(gradient, file_name):
     gradient = gradient - gradient.min()
     gradient /= gradient.max()
     # Save image
-    path_to_file = os.path.join('../results', file_name + '.jpg')
-    save_image(gradient, path_to_file)
+    # path_to_file = os.path.join('../results', file_name + '.jpg')
+    save_image(gradient, file_name)
 
 
 def save_class_activation_images(org_img, activation_map, file_name):
@@ -138,7 +138,7 @@ def save_image(im, path):
     im.save(path)
 
 
-def preprocess_image(pil_im, resize_im=True):
+def preprocess_image(pil_im, resize_im=True, device=None):
     """
         Processes image for CNNs
 
@@ -146,14 +146,16 @@ def preprocess_image(pil_im, resize_im=True):
         PIL_img (PIL_img): Image to process
         resize_im (bool): Resize to 224 or not
     returns:
-        im_as_var (torch variable): Variable that contains processed float tensor
+        im_as_var (torch variable): Variable that contains processed float
+        tensor
     """
     # mean and std list for channels (Imagenet)
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
     # Resize image
     if resize_im:
-        pil_im.thumbnail((224, 224))
+        # pil_im.thumbnail((224, 224))
+        pil_im = pil_im.resize((224, 224))
     im_as_arr = np.float32(pil_im)
     im_as_arr = im_as_arr.transpose(2, 0, 1)  # Convert array to D,W,H
     # Normalize the channels
@@ -166,7 +168,7 @@ def preprocess_image(pil_im, resize_im=True):
     # Add one more channel to the beginning. Tensor shape = 1,3,224,224
     im_as_ten.unsqueeze_(0)
     # Convert to Pytorch variable
-    im_as_var = Variable(im_as_ten, requires_grad=True)
+    im_as_var = torch.tensor(im_as_ten, requires_grad=True, device=device)
     return im_as_var
 
 

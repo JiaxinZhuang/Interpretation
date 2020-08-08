@@ -14,7 +14,8 @@ from misc_functions import (get_example_params,
 
 class GuidedBackprop():
     """
-       Produces gradients generated with guided back propagation from the given image
+       Produces gradients generated with guided back propagation from the given
+       image
     """
     def __init__(self, model):
         self.model = model
@@ -45,7 +46,8 @@ class GuidedBackprop():
             # Get last forward output
             corresponding_forward_output = self.forward_relu_outputs[-1]
             corresponding_forward_output[corresponding_forward_output > 0] = 1
-            modified_grad_out = corresponding_forward_output * torch.clamp(grad_in[0], min=0.0)
+            modified_grad_out = corresponding_forward_output *\
+                torch.clamp(grad_in[0], min=0.0)
             del self.forward_relu_outputs[-1]  # Remove last forward output
             return (modified_grad_out,)
 
@@ -61,13 +63,15 @@ class GuidedBackprop():
                 module.register_backward_hook(relu_backward_hook_function)
                 module.register_forward_hook(relu_forward_hook_function)
 
-    def generate_gradients(self, input_image, target_class, cnn_layer, filter_pos):
+    def generate_gradients(self, input_image, target_class, cnn_layer,
+                           filter_pos):
         self.model.zero_grad()
         # Forward pass
         x = input_image
         for index, layer in enumerate(self.model.features):
             # Forward pass layer by layer
-            # x is not used after this point because it is only needed to trigger
+            # x is not used after this point because it is only needed to
+            # trigger
             # the forward hook function
             x = layer(x)
             # Only need to forward until the selected layer is reached
@@ -79,7 +83,7 @@ class GuidedBackprop():
         conv_output.backward()
         # Convert Pytorch variable to numpy array
         # [0] to get rid of the first channel (1,3,224,224)
-        gradients_as_arr = self.gradients.data.numpy()[0]
+        gradients_as_arr = self.gradients.data.detach().cpu().numpy()[0]
         return gradients_as_arr
 
 
@@ -87,11 +91,12 @@ if __name__ == '__main__':
     cnn_layer = 10
     filter_pos = 5
     target_example = 2  # Spider
-    (original_image, prep_img, target_class, file_name_to_export, pretrained_model) =\
-        get_example_params(target_example)
+    (original_image, prep_img, target_class, file_name_to_export,
+     pretrained_model) = get_example_params(target_example)
 
     # File export name
-    file_name_to_export = file_name_to_export + '_layer' + str(cnn_layer) + '_filter' + str(filter_pos)
+    file_name_to_export = file_name_to_export + '_layer' + str(cnn_layer) +\
+        '_filter' + str(filter_pos)
     # Guided backprop
     GBP = GuidedBackprop(pretrained_model)
     # Get gradients
