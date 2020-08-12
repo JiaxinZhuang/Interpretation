@@ -114,6 +114,7 @@ def main():
         # valset = dataset.MNIST(root="./data/", is_train=False,
         #                        transform=val_transform)
         num_classes = 10
+        input_channel = 1
     elif dataset_name == "CUB":
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -140,7 +141,7 @@ def main():
         # valset = dataset.CUB(root="./data/", is_train=False,
         #                      transform=test_transform)
         num_classes = 200
-        # input_channel = 3
+        input_channel = 3
     elif dataset_name == "Caltech101":
         mean = [0.5495916, 0.52337694, 0.49149787]
         std = [0.3202951, 0.31704363, 0.32729807]
@@ -167,7 +168,7 @@ def main():
         # valset = dataset.Caltech101(root="./data/", is_train=False,
         #                             transform=test_transform)
         num_classes = 101
-        # input_channel = 3
+        input_channel = 3
     elif dataset_name == "ImageNet":
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -194,6 +195,7 @@ def main():
         # valset = imagenet.ImageNet(root="./data/", is_train=False,
         #                            transform=test_transform)
         num_classes = 1000
+        input_channel = 3
     else:
         _print("Need dataset")
         sys.exit(-1)
@@ -239,7 +241,7 @@ def main():
         pretrained = False
     net = model.Network(backbone=backbone, num_classes=num_classes,
                         selected_layer=selected_layer, guidedReLU=guidedReLU,
-                        pretrained=pretrained)
+                        pretrained=pretrained, input_channel=input_channel)
 
     if avg:
         _print("Replace maxpool with avgpool.")

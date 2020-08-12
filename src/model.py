@@ -15,7 +15,7 @@ from utils.initialization import _kaiming_normal, _xavier_normal, \
 class Network(nn.Module):
     """Network
     """
-    def __init__(self, backbone="alxenet", num_classes=10, input_channel=1,
+    def __init__(self, backbone="alxenet", num_classes=10, input_channel=3,
                  pretrained=False, dropout=True, conv_bias=True,
                  linear_bias=True, guidedReLU=False, selected_layer=None):
         super(Network, self).__init__()
@@ -81,7 +81,6 @@ class Network(nn.Module):
             handler.remove()
         self.forward_hook_handler = []
         return self.activation_maps
-
 
 
 class convNet(nn.Module):

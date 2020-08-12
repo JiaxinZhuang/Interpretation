@@ -16,7 +16,10 @@ class VGG16(nn.Module):
         super(VGG16, self).__init__()
         vgg16 = torchvision.models.vgg16(pretrained=pretrained)
 
-        self.selected_layer = int(selected_layer)
+        if selected_layer is not None:
+            self.selected_layer = int(selected_layer)
+        else:
+            self.selected_layer = None
 
         # Whether to remove some layers.
         if selected_layer is not None:
@@ -37,6 +40,11 @@ class VGG16(nn.Module):
                 self.fc = nn.Sequential(
                     *list(vgg16.classifier.children())[:-1],
                     nn.Linear(4096, num_classes))
+
+        if input_channel == 1:
+            print("Replace input channel with 1.")
+            self.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3),
+                                         stride=(1, 1), padding=(1, 1))
         # if not dropout:
         #     self.remove_dropout()
         # if not conv_bias:
