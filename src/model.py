@@ -66,7 +66,7 @@ class Network(nn.Module):
             new_name = name.replace("resnet18.", "")
             new_name = new_name.replace("features.", "")
             if new_name == str(self.selected_layer):
-                print("=> Register fhook {}".format(new_name))
+                # print("=> Register fhook {}".format(new_name))
                 handler = module.register_forward_hook(forward_hook_fn)
                 self.fn_handler.append(handler)
 

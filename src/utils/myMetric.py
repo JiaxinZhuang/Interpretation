@@ -6,7 +6,7 @@ import pytorch_ssim
 
 
 def mMetric_v3(ori_activation_maps, opt_activation_maps, selected_filter,
-               co1=1, co2=1):
+               co1=1, co2=1, _print=None):
     ori = ori_activation_maps.copy()
     opt = opt_activation_maps.copy()
     # diff = ori_activation_maps-opt_activation_maps
@@ -56,10 +56,11 @@ def mMetric_v3(ori_activation_maps, opt_activation_maps, selected_filter,
                                  zero_mask[index].unsqueeze(dim=0)).cpu().\
             numpy()
         ssim_res.append(ssim)
-    print("RMSE: {} - std {}".format(np.mean(rmses), np.std(rmses)))
-    print("SSIM_SEL: {} - std {}".format(np.mean(ssim_sel), np.std(ssim_sel)))
-    print("SSIM_RES: {} - std {}".format(np.mean(ssim_res), np.std(ssim_res)))
+    _print("RMSE: {} - std {}".format(np.mean(rmses), np.std(rmses)))
+    _print("SSIM_SEL: {} - std {}".format(np.mean(ssim_sel), np.std(ssim_sel)))
+    _print("SSIM_RES: {} - std {}".format(np.mean(ssim_res), np.std(ssim_res)))
     lamba1 = 0.5
     lamba2 = 0.5
     ssim_sum = lamba1 * np.array(ssim_sel) + lamba2 * np.array(ssim_res)
-    print("SSIM_SUM {} - std {}".format(np.mean(ssim_sum), np.std(ssim_sum)))
+    _print("SSIM_SUM {} - std {}".format(np.mean(ssim_sum), np.std(ssim_sum)))
+    return np.mean(ssim_sum), np.mean(ssim_sum)

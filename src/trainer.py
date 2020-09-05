@@ -22,6 +22,7 @@ from utils.early_stopping import EarlyStopping
 # from utils.visualizations import visualize_comparision_vgg16,\
 #     visualize_comparision_resNet18
 from utils.visualizations.visualize import visualize
+from myMetric import mMetric_v3
 from model import replace_layer
 from loss import FilterLoss
 from datasets import imagenet
@@ -49,7 +50,7 @@ def main():
     re_size = configs_dict["re_size"]
     input_size = configs_dict["input_size"]
     backbone = configs_dict["backbone"]
-    # eval_frequency = configs_dict["eval_frequency"]
+    eval_frequency = configs_dict["eval_frequency"]
     resume = configs_dict["resume"]
     optimizer = configs_dict["optimizer"]
     selected_layer = configs_dict["selected_layer"]
@@ -327,44 +328,54 @@ def main():
         #                      cpu().data.numpy(), epoch)
         # writer.add_histogram("Processed_images_grad", processed_images.grad.
         #                      clone().cpu().data.numpy(), epoch)
-        writer.add_scalar("Grad_Norm", get_grad_norm(processed_images), epoch)
-
         opt.step()
         losses.append(loss.item())
-        writer.add_scalar("Loss/selected_filter_loss",
-                          selected_filter_loss.item(),
-                          epoch)
-        writer.add_scalar("Loss/rest_fileter_loss", rest_fileter_loss.item(),
-                          epoch)
-        writer.add_scalar("Loss/rest_fileter_loss_interact",
-                          rest_filter_loss_interact.item(), epoch)
-        writer.add_scalar("Loss/regularization_loss",
-                          regularization_loss.item(),
-                          epoch)
-        # writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
-        #                   epoch)
         train_loss = loss.item()
-
         if scheduler is not None:
             scheduler.step(train_loss)
-
-        writer.add_scalar("Lr", get_lr(opt), epoch)
-        writer.add_scalar("Loss/total/", train_loss, epoch)
-        _print("selected_fileter_loss: {:.8f}".
-               format(selected_filter_loss.item()))
-        _print("rest_fileter_loss: {:.8f}".format(rest_fileter_loss.item()))
-        _print("regularization_loss: {:.8f}".
-               format(regularization_loss.item()))
-        _print("rest_fileter_loss_interact: {:.8f}".
-               format(rest_filter_loss_interact.item()))
-        # _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
-        _print("Epoch:{} - train loss: {:.8f}".format(epoch, train_loss))
 
         # early stopping
         is_break = False
         if get_lr(opt) <= 1e-7:
             if earlystopping.step(torch.tensor(train_loss)):
                 is_break = True
+
+        if epoch % eval_frequency == 0:
+            ori_activation_maps = net.get_activation_maps(original_images,
+                                                          selected_layer)[0]
+            opt_activation_maps = net.get_activation_maps(processed_images,
+                                                          selected_layer)[0]
+            ssim_mean, ssim_std = mMetric_v3(ori_activation_maps,
+                                             opt_activation_maps,
+                                             selected_filter, _print=_print)
+            writer.add_scalar("Metric/ssim_mean", ssim_mean, epoch)
+            writer.add_scalar("Loss/selected_filter_loss",
+                              selected_filter_loss.item(),
+                              epoch)
+            writer.add_scalar("Loss/rest_fileter_loss",
+                              rest_fileter_loss.item(), epoch)
+            writer.add_scalar("Loss/rest_fileter_loss_interact",
+                              rest_filter_loss_interact.item(), epoch)
+            writer.add_scalar("Loss/regularization_loss",
+                              regularization_loss.item(),
+                              epoch)
+            # writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
+            #                   epoch)
+            writer.add_scalar("Lr", get_lr(opt), epoch)
+            writer.add_scalar("Loss/total/", train_loss, epoch)
+            _print("selected_fileter_loss: {:.8f}".
+                   format(selected_filter_loss.item()))
+            _print("rest_fileter_loss: {:.8f}".
+                   format(rest_fileter_loss.item()))
+            _print("regularization_loss: {:.8f}".
+                   format(regularization_loss.item()))
+            _print("rest_fileter_loss_interact: {:.8f}".
+                   format(rest_filter_loss_interact.item()))
+            # _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
+            _print("Epoch:{} - train loss: {:.8f}".format(epoch, train_loss))
+            _print("-"*50)
+            writer.add_scalar("Grad_Norm", get_grad_norm(processed_images),
+                              epoch)
 
         # In order to save last epoch
         if epoch == 0 or epoch+1 == n_epochs or is_break:

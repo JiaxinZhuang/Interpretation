@@ -117,6 +117,8 @@ def preprocess_arrays(original_image, opt_image,
                                    opt_image_cpu_old):
         pixel_max = np.max([ori, opt])
         pixel_min = np.min([ori, opt])
+        # pixel_max = np.max([ori])
+        # pixel_min = np.min([ori])
         if np.max(ori) < np.max(opt):
             print("MAX: ori smaller.")
         if np.min(ori) > np.min(opt):

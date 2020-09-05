@@ -78,7 +78,7 @@ class FilterLoss(nn.Module):
         if self.defensed:
             for name, module in self.model.named_children():
                 if isinstance(module, nn.ReLU):
-                    self._print("=> Register fhook {}".format(name))
+                    # self._print("=> Register fhook {}".format(name))
                     handler = module.register_forward_hook(forward_hook_fn)
                     self.forward_hook_handler.append(handler)
 
@@ -86,7 +86,7 @@ class FilterLoss(nn.Module):
             new_name = name.replace("model.resnet18.", "")
             new_name = new_name.replace("model.features.", "")
             if new_name == str(self.selected_layer):
-                self._print("=> Register fhook {}".format(new_name))
+                # self._print("=> Register fhook {}".format(new_name))
                 handler = module.register_forward_hook(forward_hook_fn)
                 self.forward_hook_handler.append(handler)
 
@@ -96,7 +96,7 @@ class FilterLoss(nn.Module):
         def remove_forward_hook_fn():
             for handler in self.forward_hook_handler:
                 handler.remove()
-                self._print("=> Remove fhook {}".format(handler))
+                # self._print("=> Remove fhook {}".format(handler))
             self.forward_hook_handler = []
         remove_forward_hook_fn()
 
@@ -121,7 +121,7 @@ class FilterLoss(nn.Module):
 
         for name, module in self.model.named_children():
             if isinstance(module, nn.ReLU):
-                print("=> Register bhook {}".format(name))
+                # print("=> Register bhook {}".format(name))
                 module.register_backward_hook(backward_hook_fn)
                 # self.backward_hook_handler.append(handler)
 
