@@ -14,3 +14,4 @@ tags
 /jupyter/Deconv/generated/*
 /jupyter/LRP/generated/*
 /jupyter/DeepDream/generated/*
+/scripts_jy/*
