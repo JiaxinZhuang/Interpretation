@@ -72,6 +72,7 @@ class Network(nn.Module):
 
     def get_activation_maps(self, inputs, selected_layer):
         self.model.eval()
+        inputs = inputs.detach().clone()
         self.selected_layer = selected_layer
         self.activation_maps = []
         self.fn_handler = []

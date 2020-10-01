@@ -1,7 +1,9 @@
 import torch
 import numpy as np
 import sys
+from collections import defaultdict
 sys.path.append("../")
+
 import pytorch_ssim
 
 
@@ -26,7 +28,7 @@ def mMetric_v3(ori_activation_maps, opt_activation_maps, selected_filter,
 
     ssim_sel = []
     rmses = []
-    for index in range(30):
+    for index in range(batch_size):
         ssim = pytorch_ssim.ssim(ori_sel_ts[index].unsqueeze(dim=0),
                                  opt_sel_ts[index].unsqueeze(dim=0)).cpu().\
             numpy()
@@ -35,32 +37,34 @@ def mMetric_v3(ori_activation_maps, opt_activation_maps, selected_filter,
             cpu().numpy()
         ssim_sel.append(ssim)
         rmses.append(rmse)
-        # ssim_loss = pytorch_ssim.SSIM(window_size=11)
-        # print(ssim_loss(ori_sel, opt_sel))
 
     # RF
     ori_sel = np.expand_dims(ori_sel, axis=1)
-    # print("ori_sel: ", ori_sel.shape)
     ori_sel = np.repeat(ori_sel, channels-1, axis=1)
-    # print("ori_sel: ", ori_sel.shape)
     ori_sel_mask = ori_sel == 0
     opt_res_mask = opt_res != 0
     new_opt_res = opt_res * ori_sel_mask * opt_res_mask
     opt_res_ts = torch.from_numpy(new_opt_res).cuda()
-    # print(opt_res_ts.shape)
     zero_mask = torch.zeros_like(opt_res_ts).cuda()
 
     ssim_res = []
-    for index in range(30):
+    for index in range(batch_size):
         ssim = pytorch_ssim.ssim(opt_res_ts[index].unsqueeze(dim=0),
                                  zero_mask[index].unsqueeze(dim=0)).cpu().\
             numpy()
         ssim_res.append(ssim)
-    _print("RMSE: {} - std {}".format(np.mean(rmses), np.std(rmses)))
-    _print("SSIM_SEL: {} - std {}".format(np.mean(ssim_sel), np.std(ssim_sel)))
-    _print("SSIM_RES: {} - std {}".format(np.mean(ssim_res), np.std(ssim_res)))
     lamba1 = 0.5
     lamba2 = 0.5
     ssim_sum = lamba1 * np.array(ssim_sel) + lamba2 * np.array(ssim_res)
-    _print("SSIM_SUM {} - std {}".format(np.mean(ssim_sum), np.std(ssim_sum)))
-    return np.mean(ssim_sum), np.mean(ssim_sum)
+
+    statistics = defaultdict(list)
+    statistics["rmses_mean"] = np.mean(rmses)
+    statistics["rmses_std"] = np.std(rmses)
+    statistics["ssim_sel_mean"] = np.mean(ssim_sel)
+    statistics["ssim_sel_std"] = np.std(ssim_sel)
+    statistics["ssim_res_mean"] = np.mean(ssim_res)
+    statistics["ssim_res_std"] = np.std(ssim_res)
+    statistics["ssim_sum"] = np.mean(ssim_sum)
+    statistics["ssim_sum"] = np.std(ssim_sum)
+
+    return statistics

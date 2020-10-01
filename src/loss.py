@@ -75,18 +75,12 @@ class FilterLoss(nn.Module):
             """
             activation_maps.append(outputs)
 
-        if self.defensed:
-            for name, module in self.model.named_children():
-                if isinstance(module, nn.ReLU):
-                    # self._print("=> Register fhook {}".format(name))
-                    handler = module.register_forward_hook(forward_hook_fn)
-                    self.forward_hook_handler.append(handler)
-
-        for name, module in self.named_modules():
-            new_name = name.replace("model.resnet18.", "")
-            new_name = new_name.replace("model.features.", "")
-            if new_name == str(self.selected_layer):
-                # self._print("=> Register fhook {}".format(new_name))
+        # if self.defensed:
+        for name, module in self.model.named_modules():
+            new_name = name.replace("resnet18.", "")
+            new_name = new_name.replace("features.", "")
+            if (not self.defensed and new_name == str(self.selected_layer)) or\
+                    (self.defensed and isinstance(module, nn.ReLU)):
                 handler = module.register_forward_hook(forward_hook_fn)
                 self.forward_hook_handler.append(handler)
 
@@ -103,23 +97,45 @@ class FilterLoss(nn.Module):
     def hook_backward(self):
         def backward_hook_fn(module, grad_in, grad_out):
             grad_output = grad_out[0]
+            # print("-"*50)
+            # print(module)
+            # print(type(module))
+            # print(grad_output.shape)
+            # print(len(self.original_activation_maps))
+            # print(len(self.processed_activation_maps))
             o_activation_map = self.original_activation_maps.pop()
             p_activation_map = self.processed_activation_maps.pop()
-            positive_mask_1 = (p_activation_map > 0).type_as(grad_output)
-            positive_mask_2 = (p_activation_map < o_activation_map).\
-                type_as(grad_output)
-            dummy_zeros_1 = torch.zeros_like(grad_output)
-            dummy_zeros_2 = torch.zeros_like(grad_output)
+
+            bu = torch.max(torch.zeros_like(o_activation_map),
+                           o_activation_map)
+            bl = torch.min(torch.zeros_like(o_activation_map),
+                           o_activation_map)
+
+            positive_mask_1 = (p_activation_map <= bu).type_as(grad_output)
+            positive_mask_2 = (p_activation_map >= bl).type_as(grad_output)
+            # print(type(positive_mask_1))
+            # print(positive_mask_1)
+            # print(type(positive_mask_2))
+            # print(positive_mask_2)
+            grad_input = grad_output * positive_mask_1 * positive_mask_2
+            # print(grad_in.shape)
+            # print(positive_mask_1.shape)
+            # print(positive_mask_2.shape)
+            # positive_mask_1 = (p_activation_map > 0).type_as(grad_output)
+            # positive_mask_2 = (p_activation_map < o_activation_map).\
+            #     type_as(grad_output)
+            # dummy_zeros_1 = torch.zeros_like(grad_output)
+            # dummy_zeros_2 = torch.zeros_like(grad_output)
 
             # ReLU
-            grad_input = torch.addcmul(dummy_zeros_1,
-                                       positive_mask_1, grad_output)
+            # grad_input = torch.addcmul(dummy_zeros_1,
+            #                            positive_mask_1, grad_output)
             # Guilded.
-            grad_input = torch.addcmul(dummy_zeros_2,
-                                       positive_mask_2, grad_input)
+            # grad_input = torch.addcmul(dummy_zeros_2,
+            #                            positive_mask_2, grad_input)
             return (grad_input,)
 
-        for name, module in self.model.named_children():
+        for name, module in self.model.named_modules():
             if isinstance(module, nn.ReLU):
                 # print("=> Register bhook {}".format(name))
                 module.register_backward_hook(backward_hook_fn)
@@ -153,49 +169,36 @@ class FilterLoss(nn.Module):
         self.remove_hook_forward()
         self.hook_forward(self.original_activation_maps)
 
-        # Obtain original tensors
-        # original_outputs = original_inputs
-        # for index, layer in enumerate(self.model):
-        #     original_outputs = layer(original_outputs)
-        #     if index == self.selected_layer:
-        #         break
-        # original_outputs =
         self.model(original_inputs)
+        original_activation_maps_cp = [ac_map.clone() for ac_map in
+                                       self.original_activation_maps]
+        self.original_activation_maps += original_activation_maps_cp
 
         selected_original_feature_map = \
-            self.original_activation_maps[0][:, self.selected_filter]
-        # original_outputs[:, self.selected_filter]
-        # processed_outputs = self.model(processed_inputs)
+            self.original_activation_maps[-1][:, self.selected_filter].clone()
 
-        # if self.defensed:
         self.remove_hook_forward()
         self.hook_forward(self.processed_activation_maps)
-        # processed_outputs =
         self.model(processed_inputs)
-        # for index, layer in enumerate(self.model):
-        #     processed_outputs = layer(processed_outputs)
-        #     if index == self.selected_layer:
-        #         break
-
-        # print(self.forward_hook_handler)
-        # self.conv_output = processed_outputs
+        processed_activation_maps_cp = [ac_map.clone() for ac_map in
+                                        self.processed_activation_maps]
+        self.processed_activation_maps += processed_activation_maps_cp
 
         # Loss function is the mean of the output of selected layer/filter
         # The final loss would be designed at a pixel level
         # Try to minimize the mean of the output of the specific filter
-
         # Concat tensor along the channels
         rest_processed_feature_map = \
             torch.cat(
-                (self.processed_activation_maps[0][:, :self.selected_filter],
-                 self.processed_activation_maps[0][:,
-                                                   self.selected_filter+1:]),
+                (self.processed_activation_maps[-1][:, :self.selected_filter].clone(),
+                 self.processed_activation_maps[-1][:,
+                                                    self.selected_filter+1:].clone()),
                 dim=1)
         # torch.cat((processed_outputs[:, :self.selected_filter],
         #            processed_outputs[:, self.selected_filter+1:]),
         # print(rest_processed_feature_map.size())
         selected_processed_feature_map = \
-            self.processed_activation_maps[0][:, self.selected_filter]
+            self.processed_activation_maps[-1][:, self.selected_filter].clone()
         # processed_outputs[:, self.selected_filter]
         # print("selected_processed_feature_map:",
         # selected_processed_feature_map.size())
@@ -266,8 +269,8 @@ class FilterLoss(nn.Module):
         Returns:
             rest_processed_feature_map: [batc_size, channels, height, width]
         """
-        if self.inter:
-            self._print("Inter")
+        # if self.inter:
+        #     self._print("Inter")
         (batch_size, channels, height, width) = \
             rest_processed_feature_map.size()
         selected_feature_map_rp = selected_feature_map.clone().unsqueeze(1)

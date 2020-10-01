@@ -287,7 +287,7 @@ def main():
             _print("Epoch:{} - train loss: {:.3f}".format(epoch,
                                                           train_avg_loss))
 
-        if freeze or epoch % eval_frequency:
+        if freeze or epoch % eval_frequency == 0:
             gt_predict = {"train_gt": None,
                           "train_predict": None,
                           "val_gt": None,

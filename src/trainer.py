@@ -10,17 +10,16 @@ Erase image by our defined loss
 import sys
 import os
 import torch
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
-
+from collections import defaultdict
+import pickle
 from PIL import Image
+import shutil
 
 from utils.function import init_logging, init_environment, recreate_image, \
-        get_lr, save_image, dataname_2_save, get_grad_norm, timethis, \
-        save_numpy
+        get_lr, save_image, dataname_2_save, timethis
 from utils.early_stopping import EarlyStopping
-# from utils.visualizations import visualize_comparision_vgg16,\
-#     visualize_comparision_resNet18
 from utils.visualizations.visualize import visualize
 from myMetric import mMetric_v3
 from model import replace_layer
@@ -61,7 +60,6 @@ def main():
     class_index = configs_dict["class_index"]
     num_class = configs_dict["num_class"]
     mode = configs_dict["mode"]
-    clip_grad = configs_dict["clip_grad"]
     inter = configs_dict["inter"]
     rho = configs_dict["rho"]
     regularization = configs_dict["regularization"]
@@ -81,9 +79,12 @@ def main():
     _print = init_logging(log_dir, exp).info
     configs.print_config(_print)
     init_environment(seed=seed, cuda_id=cuda_id, _print=_print)
-    tf_log = os.path.join(log_dir, exp)
-    writer = SummaryWriter(log_dir=tf_log)
+    # tf_log = os.path.join(log_dir, exp)
+    # writer = SummaryWriter(log_dir=tf_log)
     generated_dir = os.path.join(generated_dir, exp)
+    if os.path.exists(generated_dir):
+        shutil.rmtree(generated_dir)
+    os.makedirs(generated_dir)
 
     _print("Save generated on {}".format(generated_dir))
     _print("Using device {}".format(device))
@@ -269,7 +270,7 @@ def main():
                               momentum=0.9,
                               weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    opt, mode='min', factor=0.1, patience=5000, verbose=True,
+                    opt, mode='min', factor=0.1, patience=200, verbose=True,
                     threshold=1e-4)
     elif optimizer == "Adam":
         _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
@@ -301,7 +302,8 @@ def main():
     net.set_guildedReLU(guidedReLU)
     _print(net)
 
-    losses = []
+    statistics = defaultdict(list)
+    best = {"loss": float('inf')}
     for epoch in range(start_epoch, n_epochs):
         opt.zero_grad()
         selected_filter_loss, rest_fileter_loss, regularization_loss,  \
@@ -310,7 +312,6 @@ def main():
         # if alpha != 0 and (1-alpha) != 0:
         # use beat to omit gradient from rest_filter_loss
         if criterion.inter:
-            _print(">> Inter <<")
             loss = alpha * selected_filter_loss + \
                 beta * rest_filter_loss_interact + \
                 gamma * regularization_loss + delta * smoothing_loss
@@ -320,91 +321,114 @@ def main():
         loss.backward()
 
         # Clip gradient using maximum value
-        if clip_grad:
-            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1,
-                                           norm_type=torch._six.inf)
+        # if clip_grad:
+        # .nn.utils.clip_grad_norm_(net.parameters(), max_norm=1,
+        #                                    norm_type=torch._six.inf)
 
         # writer.add_histogram("Processed_images", processed_images.clone().
         #                      cpu().data.numpy(), epoch)
         # writer.add_histogram("Processed_images_grad", processed_images.grad.
         #                      clone().cpu().data.numpy(), epoch)
         opt.step()
-        losses.append(loss.item())
         train_loss = loss.item()
         if scheduler is not None:
             scheduler.step(train_loss)
 
         # early stopping
         is_break = False
-        if get_lr(opt) <= 1e-7:
+        if get_lr(opt) < 1:
             if earlystopping.step(torch.tensor(train_loss)):
                 is_break = True
+
+        # find best
+        if train_loss < best["loss"]:
+            ori_activation_maps = net.get_activation_maps(original_images,
+                                                          selected_layer)[0]
+            opt_activation_maps = net.get_activation_maps(processed_images,
+                                                          selected_layer)[0]
+            metric_statistic = mMetric_v3(ori_activation_maps,
+                                          opt_activation_maps, selected_filter)
+            best["epoch"] = epoch
+            best["loss"] = train_loss
+            best["processed_images"] = processed_images.detach().clone()
+            best["epoch"] = epoch
+            best["selected_filter_loss"] = selected_filter_loss.item()
+            best["rest_fileter_loss"] = rest_fileter_loss.item()
+            best["regularization_loss"] = regularization_loss.item()
+            best["rest_filter_loss_interact"] = \
+                rest_filter_loss_interact.item()
+            best["metric_statistic"] = metric_statistic
 
         if epoch % eval_frequency == 0:
             ori_activation_maps = net.get_activation_maps(original_images,
                                                           selected_layer)[0]
             opt_activation_maps = net.get_activation_maps(processed_images,
                                                           selected_layer)[0]
-            ssim_mean, ssim_std = mMetric_v3(ori_activation_maps,
-                                             opt_activation_maps,
-                                             selected_filter, _print=_print)
-            writer.add_scalar("Metric/ssim_mean", ssim_mean, epoch)
-            writer.add_scalar("Loss/selected_filter_loss",
-                              selected_filter_loss.item(),
-                              epoch)
-            writer.add_scalar("Loss/rest_fileter_loss",
-                              rest_fileter_loss.item(), epoch)
-            writer.add_scalar("Loss/rest_fileter_loss_interact",
-                              rest_filter_loss_interact.item(), epoch)
-            writer.add_scalar("Loss/regularization_loss",
-                              regularization_loss.item(),
-                              epoch)
-            # writer.add_scalar("Loss/smoothing_loss", smoothing_loss.item(),
-            #                   epoch)
-            writer.add_scalar("Lr", get_lr(opt), epoch)
-            writer.add_scalar("Loss/total/", train_loss, epoch)
-            _print("selected_fileter_loss: {:.8f}".
-                   format(selected_filter_loss.item()))
-            _print("rest_fileter_loss: {:.8f}".
-                   format(rest_fileter_loss.item()))
-            _print("regularization_loss: {:.8f}".
-                   format(regularization_loss.item()))
-            _print("rest_fileter_loss_interact: {:.8f}".
-                   format(rest_filter_loss_interact.item()))
-            # _print("smoothing_loss: {:.4f}".format(smoothing_loss.item()))
-            _print("Epoch:{} - train loss: {:.8f}".format(epoch, train_loss))
-            _print("-"*50)
-            writer.add_scalar("Grad_Norm", get_grad_norm(processed_images),
-                              epoch)
+            metric_statistic = mMetric_v3(ori_activation_maps,
+                                          opt_activation_maps,
+                                          selected_filter, _print=_print)
+            statistics["epoch"].append(epoch)
+            statistics["selected_filter_loss"].append(
+                selected_filter_loss.item())
+            statistics["rest_fileter_loss"].append(
+                rest_fileter_loss.item())
+            statistics["regularization_loss"].append(
+                regularization_loss.item())
+            statistics["rest_filter_loss_interact"].append(
+                rest_filter_loss_interact.item())
+            statistics["losses"].append(train_loss)
+            statistics["metric_statistic"].append(metric_statistic)
+            statistics["lr"].append(get_lr(opt))
 
-        # In order to save last epoch
-        if epoch == 0 or epoch+1 == n_epochs or is_break:
-            saved_dir = os.path.join(generated_dir, str(epoch))
-            os.makedirs(saved_dir, exist_ok=True)
-            saved_paths = dataname_2_save(imgs_path, saved_dir)
-            # [batch_size, channel, height, width]
+            saved_paths = dataname_2_save(imgs_path, generated_dir, epoch)
             processed_images_cpu = processed_images.detach().cpu().numpy()
-            save_numpy(processed_images_cpu, os.path.join(saved_dir,
-                                                          str(epoch)+".npy"))
             for img, save_path in zip(processed_images_cpu, saved_paths):
                 recreate_im = recreate_image(img,
                                              reverse_mean=reverse_mean,
                                              reverse_std=reverse_std,
                                              rescale=rescale)
                 save_image(recreate_im, save_path)
-                _print("save generated image in {}".format(save_path))
-            if is_break or epoch+1 == n_epochs:
-                ori_activation_maps = net.get_activation_maps(original_images,
-                                                              selected_layer)
-                opt_activation_maps = net.get_activation_maps(processed_images,
-                                                              selected_layer)
-                visualize(ori_activation_maps, opt_activation_maps,
-                          img_index=img_index, layer_name=selected_layer,
-                          backbone=backbone, num_class=num_class,
-                          exp=exp, imgs_path=imgs_path)
-                if is_break:
-                    _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
-                    break
+
+        # In order to save last epoch
+        if epoch+1 == n_epochs or is_break:
+            # statistics
+            for img_path in imgs_path:
+                statistics["best"] = [best]
+                name = os.path.splitext(img_path)[0].split("/")[-1]
+                statistics_path = os.path.join(generated_dir,
+                                               name + "_statistics.pl")
+                with open(statistics_path, "wb") as handle:
+                    pickle.dump(statistics, handle,
+                                protocol=pickle.HIGHEST_PROTOCOL)
+
+            # [batch_size, channel, height, width]
+            epoch = best["epoch"]
+            processed_images_cpu = best["processed_images"]
+
+            ori_activation_maps = net.get_activation_maps(original_images,
+                                                          selected_layer)
+            opt_activation_maps = net.get_activation_maps(processed_images_cpu,
+                                                          selected_layer)
+            visualize(ori_activation_maps, opt_activation_maps,
+                      img_index=img_index, layer_name=selected_layer,
+                      backbone=backbone, num_class=num_class,
+                      exp=exp, imgs_path=imgs_path)
+
+            saved_paths = dataname_2_save(imgs_path, generated_dir,
+                                          str(epoch)+"_best")
+            processed_images_cpu = processed_images_cpu.cpu().numpy()
+            for img, save_path in zip(processed_images_cpu, saved_paths):
+                recreate_im = recreate_image(img,
+                                             reverse_mean=reverse_mean,
+                                             reverse_std=reverse_std,
+                                             rescale=rescale)
+                save_image(recreate_im, save_path)
+            # processed_images_cpu = processed_images.detach().cpu().numpy()
+            # save_numpy(processed_images_cpu, os.path.join(generated_dir,
+            #                                               str(epoch)+".npy"))
+            if is_break:
+                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
+                break
 
     _print("Finish Training")
 

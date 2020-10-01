@@ -10,13 +10,13 @@ experiment_index=${experiment_index%%.*}
 dataset=mnist
 # -------------------------------
 epochs=10
-server=ls97
+server=desktop
 # -------------------------------
 # Variables
-cuda_visible_devices=1
-model="vgg16"
+cuda_visible_devices=0
+model="vgg11"
 port=9998
-lr=1e-2
+lr=1e-3
 seed=-1
 batch_size=64
 initialization="kaiming_normal"
@@ -25,7 +25,7 @@ num_workers=4
 dali=False
 re_size=32
 input_size=32
-eval_frequency=10
+eval_frequency=1
 
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices python -u ./src/baseline.py \
     --experiment_index $experiment_index \

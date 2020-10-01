@@ -6,15 +6,19 @@ import os
 import sys
 import copy
 import math
+import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
+import matplotlib.font_manager
 import PIL
 from PIL import Image
 import numpy as np
 import heapq
 import plotly.graph_objects as go
 
+
 from .utils import cat_img_horizontal, compute_similarity
+matplotlib.rcParams['savefig.dpi'] = 600
 
 
 def visualize_features_map_for_comparision(img_index: int, layer_index:
@@ -122,7 +126,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
         file_name = os.path.join(save_dict["save_dir"], save_dict["save_name"].
                                  format(layer_name, save_dict["index2image"]
                                         [img_index]))
-        plt.savefig(file_name)
+        plt.savefig(file_name, dpi=600)
         print("Successfully Save pdf to {}".format(file_name))
     plt.show()
 
@@ -262,6 +266,7 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
     Args:
         plt_mode: [real, img_scale, imgs_scale]
     """
+    # print("=> max, min", pixel_max, pixel_min)
     if plt_mode == "real":
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "img_scale":

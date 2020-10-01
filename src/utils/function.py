@@ -250,16 +250,19 @@ def get_grad_norm(processed_images):
 #     for name, param in net.named_parameters():
 
 
-def dataname_2_save(imgs_path, saved_dir):
+def dataname_2_save(imgs_path, saved_dir, epoch=None):
     """Img path saved.
     """
     output_name = []
     for name in imgs_path:
         name = name.split("/")[-1:]
         output = os.path.join(saved_dir, *name)
-        output = os.path.splitext(output)[0] + ".png"
+        if epoch:
+            output = os.path.splitext(output)[0] + "_" + str(epoch) + ".png"
+        else:
+            output = os.path.splitext(output)[0] + ".png"
         output_name.append(output)
-    print(output_name)
+    # print(output_name)
     return output_name
 
 
