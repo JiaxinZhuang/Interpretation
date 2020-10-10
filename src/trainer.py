@@ -16,11 +16,13 @@ from collections import defaultdict
 import pickle
 from PIL import Image
 import shutil
+import numpy as np
 
 from utils.function import init_logging, init_environment, recreate_image, \
         get_lr, save_image, dataname_2_save, timethis
 from utils.early_stopping import EarlyStopping
 from utils.visualizations.visualize import visualize
+from utils.function import zscore
 from myMetric import mMetric_v3
 from model import replace_layer
 from loss import FilterLoss
@@ -405,30 +407,40 @@ def main():
             epoch = best["epoch"]
             processed_images_cpu = best["processed_images"]
 
-            ori_activation_maps = net.get_activation_maps(original_images,
-                                                          selected_layer)
-            opt_activation_maps = net.get_activation_maps(processed_images_cpu,
-                                                          selected_layer)
-            visualize(ori_activation_maps, opt_activation_maps,
-                      img_index=img_index, layer_name=selected_layer,
-                      backbone=backbone, num_class=num_class,
-                      exp=exp, imgs_path=imgs_path)
-
             saved_paths = dataname_2_save(imgs_path, generated_dir,
                                           str(epoch)+"_best")
             processed_images_cpu = processed_images_cpu.cpu().numpy()
+
             for img, save_path in zip(processed_images_cpu, saved_paths):
                 recreate_im = recreate_image(img,
                                              reverse_mean=reverse_mean,
                                              reverse_std=reverse_std,
                                              rescale=rescale)
                 save_image(recreate_im, save_path)
-            # processed_images_cpu = processed_images.detach().cpu().numpy()
-            # save_numpy(processed_images_cpu, os.path.join(generated_dir,
-            #                                               str(epoch)+".npy"))
-            if is_break:
-                _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
-                break
+
+            print(save_path)
+            opt_image = Image.open(save_path).convert("RGB")
+            opt_image = np.expand_dims(opt_image, axis=0).astype(np.float32)
+            opt_image = opt_image / 255.0
+            saved_opt_img = zscore(opt_image, mean, std)
+            saved_opt_img = torch.from_numpy(saved_opt_img).to(device)
+
+            ori_activation_maps = net.get_activation_maps(original_images,
+                                                          selected_layer)
+            opt_activation_maps = net.get_activation_maps(saved_opt_img,
+                                                          selected_layer)
+
+            metric_statistic = mMetric_v3(ori_activation_maps[0],
+                                          opt_activation_maps[0],
+                                          selected_filter, _print=_print)
+            print(metric_statistic)
+            visualize(ori_activation_maps, opt_activation_maps,
+                      img_index=img_index, layer_name=selected_layer,
+                      backbone=backbone, num_class=num_class,
+                      exp=exp, imgs_path=imgs_path)
+
+            _print(">>> EarlyStopping at epoch: {} <<<".format(epoch))
+            break
 
     _print("Finish Training")
 

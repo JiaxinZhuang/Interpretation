@@ -48,7 +48,7 @@ def init_environment(seed=0, cuda_id=0, _print=None):
     else:
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-        _print("> Don't use seed")
+
 
 
 def init_logging(output_dir, exp):
@@ -397,6 +397,29 @@ def get_embeddings(loader, net, save_memory=False):
     embeddings_cpu = torch.cat(embeddings_cpu, dim=0)
     targets_cpu = torch.cat(targets_cpu, dim=0)
     return embeddings_cpu, targets_cpu
+
+
+def zscore(optimized_data, mean, std):
+    """Zscore the data.
+    Args:
+        optimized_data: [batch_size, height, width, channels]
+        mean: [channels]
+        std: [channels]
+    Return:
+        optimized_data: [batch_size, channels, heights, width]
+    """
+    print(optimized_data.shape)
+    if optimized_data.shape[1] != 3 and optimized_data.shape[1] != 1:
+        optimized_data = np.transpose(optimized_data.copy(), (0, 3, 1, 2))
+    else:
+        optimized_data = optimized_data.copy()
+    channels = optimized_data.shape[1]
+    for channel in range(channels):
+        optimized_data[:, channel, :, :] = optimized_data[:, channel, :, :] -\
+            mean[channel]
+        optimized_data[:, channel, :, :] = optimized_data[:, channel, :, :] /\
+            std[channel]
+    return optimized_data
 
 
 if __name__ == "__main__":
