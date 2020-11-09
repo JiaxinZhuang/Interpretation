@@ -15,12 +15,20 @@ from PIL import Image
 import numpy as np
 import heapq
 import plotly.graph_objects as go
+import warnings
+import sys
+warnings.filterwarnings('ignore')
 
 
 from .utils import cat_img_horizontal, compute_similarity
 matplotlib.rcParams['savefig.dpi'] = 600
 
+sys.path.append("/home/lincolnzjx/Desktop/src/utils")
+sys.path.append("../src/utils/")
+# from function import gcollect
 
+
+# @gcollect
 def visualize_features_map_for_comparision(img_index: int, layer_index:
                                            int, features_map,
                                            opt_feature_map, cols=4,
@@ -38,15 +46,18 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
         color_map: [gray, jet, ...], choices available on
             https://matplotlib.org/3.1.3/tutorials/colors/colormaps.html
     """
-    print("Plot mode is => {}".format(plt_mode))
-    print("Color map is => {}".format(color_map))
+    # print("Plot mode is => {}".format(plt_mode))
+    # print("Color map is => {}".format(color_map))
     list_index = conv_output_index_dict[layer_index]
-    features_map = copy.deepcopy(features_map)[list_index]
-    opt_features_map = copy.deepcopy(opt_feature_map)[list_index]
-    assert features_map.shape == opt_features_map.shape
-    features_map = features_map.transpose((0, 2, 3, 1))
-    opt_features_map = opt_features_map.transpose((0, 2, 3, 1))
-    n_filters = features_map.shape[-1]
+    # features_map = copy.deepcopy(features_map)[list_index]
+    # opt_features_map = copy.deepcopy(opt_feature_map)[list_index]
+    pfeatures_map = copy.deepcopy(features_map)[list_index]
+    popt_features_map = copy.deepcopy(opt_feature_map)[list_index]
+    del features_map, opt_feature_map
+    assert pfeatures_map.shape == popt_features_map.shape
+    pfeatures_map = pfeatures_map.transpose((0, 2, 3, 1))
+    popt_features_map = popt_features_map.transpose((0, 2, 3, 1))
+    n_filters = pfeatures_map.shape[-1]
     rows = math.ceil(n_filters / cols)
 
     # fig = plt.figure(constrained_layout=True)
@@ -59,14 +70,14 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
     font = {'family': 'normal', 'size': 4}
     width = height = 224
     index = 0
-    layer_max = np.max(features_map[img_index, :, :, :])
-    layer_min = np.min(features_map[img_index, :, :, :])
-    selected_feautre_map = np.array(features_map[img_index, :, :, index])
+    layer_max = np.max(pfeatures_map[img_index, :, :, :])
+    layer_min = np.min(pfeatures_map[img_index, :, :, :])
+    selected_feautre_map = np.array(pfeatures_map[img_index, :, :, index])
     for row in range(0, rows):
         for col in range(0, cols):
             if selected_filter and index != selected_filter:
-                opt_features_map[img_index, :, :, index] = \
-                    opt_features_map[img_index, :, :, index] * \
+                popt_features_map[img_index, :, :, index] = \
+                    popt_features_map[img_index, :, :, index] * \
                     (selected_feautre_map <= 1e-2)
 
             # specify subplot and turn off axis
@@ -74,10 +85,10 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             ax.set_xticks([])
             ax.set_yticks([])
             # plot feature maps in grayscale
-            img = Image.fromarray(features_map[img_index, :, :, index]).\
+            img = Image.fromarray(pfeatures_map[img_index, :, :, index]).\
                 resize((width, height), PIL.Image.BICUBIC)
             opt_img = Image.fromarray(
-                opt_features_map[img_index, :, :, index]).\
+                popt_features_map[img_index, :, :, index]).\
                 resize((width, height), PIL.Image.BICUBIC)
             cat_img = cat_img_horizontal(img, opt_img)
             cat_img_np = np.array(cat_img)
@@ -87,6 +98,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
             max_pixel_opt = np.max(opt_img)
             min_pixel_opt = np.min(opt_img)
 
+            # print(plt_mode)
             if plt_mode == "real":
                 plt_show(cat_img_np, plt_mode=plt_mode, color_map=color_map)
             elif plt_mode == "img_scale":
@@ -94,6 +106,7 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                 pixel_min = layer_min
                 plt_show(cat_img_np, plt_mode=plt_mode, pixel_max=pixel_max,
                          pixel_min=pixel_min, color_map=color_map)
+                # print("I'm here")
             elif plt_mode == "imgs_scale":
                 print("TODO")
                 sys.exit(-1)
@@ -117,7 +130,6 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                 min_pixel_opt, max_pixel_opt),
                          loc="center", pad=1.0, fontdict=font)
             index += 1
-    # show figure
     fig.suptitle("Layer-{}".format(layer_name), fontsize=8,
                  verticalalignment="bottom")
     plt.tight_layout()
@@ -128,7 +140,11 @@ def visualize_features_map_for_comparision(img_index: int, layer_index:
                                         [img_index]))
         plt.savefig(file_name, dpi=600)
         print("Successfully Save pdf to {}".format(file_name))
-    plt.show()
+
+    plt.clf()
+    plt.close('all')
+    del pfeatures_map, popt_features_map, selected_feautre_map,
+    cat_img_np, cat_img, fig, gs
 
 
 def visualize_features_map(img_index: int, layer_index=0, features_map=None,
@@ -169,6 +185,7 @@ def visualize_features_map(img_index: int, layer_index=0, features_map=None,
     max_values = {}
     layer_max = np.max(features_map[img_index, :, :, :])
     layer_min = np.min(features_map[img_index, :, :, :])
+    # print('herehere')
     for row in range(0, rows):
         for col in range(0, cols):
             # specify subplot and turn off axis
@@ -212,7 +229,7 @@ def visualize_features_map(img_index: int, layer_index=0, features_map=None,
                                  format(layer_index, save_dict["index2image"]
                                         [img_index]))
         plt.savefig(file_name)
-        print("Successfully Save pdf to {}".format(file_name))
+        print("Successfully Save png to {}".format(file_name))
     plt.show()
 
     if save_original:
@@ -260,6 +277,7 @@ def visualize_filters(filters, n_filters, n_channels):
     # plt.show()
 
 
+# @gcollect
 def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
              color_map=None):
     """Plt under the plt mode.
@@ -270,17 +288,23 @@ def plt_show(cat_img_np, plt_mode="real", pixel_max=None, pixel_min=None,
     if plt_mode == "real":
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "img_scale":
-        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        # cat_img_np =
+        a = (cat_img_np - pixel_min)
+        b = (pixel_max - pixel_min + 1e-8)
+        c = a/b
+        cat_img_np = c * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "single":
-        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min + 1e-2)\
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min + 1e-8)\
             * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     elif plt_mode == "imgs_scale":
-        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min) * 255
+        cat_img_np = (cat_img_np - pixel_min) / (pixel_max - pixel_min +
+                                                 1e+8) * 255
         plt.imshow(cat_img_np, cmap=color_map, vmin=0, vmax=255)
     else:
         sys.exit(-1)
+    del cat_img_np
 
 
 def plot_differ(origin_acc, changed_acc, arg_index, title="RGB vs Gray."):

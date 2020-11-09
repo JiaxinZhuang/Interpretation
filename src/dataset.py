@@ -24,7 +24,7 @@ class MNIST(Dataset):
 
         mnist_dataset = torchvision.datasets.MNIST(root=self.root,
                                                    train=self.is_train,
-                                                   download=False)
+                                                   download=True)
 
         self.data = mnist_dataset.data.cpu().numpy()
         self.labels = mnist_dataset.targets.cpu().numpy()

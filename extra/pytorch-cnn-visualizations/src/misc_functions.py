@@ -232,7 +232,7 @@ def get_example_params(example_index):
     # Read image
     original_image = Image.open(img_path).convert('RGB')
     # Process image
-    prep_img = preprocess_image(original_image)
+    orep_img = preprocess_image(original_image)
     # Define model
     pretrained_model = models.alexnet(pretrained=True)
     return (original_image,

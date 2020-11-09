@@ -77,7 +77,7 @@ class Config:
                                  help="Random seed for pytorch and Numpy ")
         self.parser.add_argument('--eps', default=1e-7, type=float,
                                  help="episilon for many formulation")
-        self.parser.add_argument("--weight_decay", default=1e-4, type=float,
+        self.parser.add_argument("--weight_decay", default=0, type=float,
                                  metavar="W",
                                  help="weight decay for optimizer")
         self.parser.add_argument("--momentum", default=0.9, type=float,
@@ -107,6 +107,8 @@ class Config:
         self.parser.add_argument("--print-freq", default=10, type=int,
                                  metavar="N",
                                  help="print frequency (default: 10)")
+        self.parser.add_argument("--scheduler", action="store_true",
+                                 help="wether to use scheduler.")
 
     def _add_customized_setting(self):
         """Add customized setting
@@ -278,6 +280,7 @@ class Config:
         self.config["embedding_size"] = self.args.embedding_size
 
         self.config["avg"] = self.args.avg
+        self.config["scheduler"] = self.args.scheduler
 
     def _path_suitable_for_server(self):
         """Path suitable for server

@@ -24,14 +24,21 @@ class GuidedBackprop():
         # Put model in evaluation mode
         self.model.eval()
         self.update_relus()
-        self.hook_layers()
+        # self.hook_layers()
 
-    def hook_layers(self):
-        def hook_function(module, grad_in, grad_out):
-            self.gradients = grad_in[0]
+    def hook_layers(self, input_tensor):
+        def hook_function(grad_in):
+            # print(grad_out[0].shape)
+            self.gradients = grad_in
+        input_tensor.register_hook(hook_function)
         # Register hook to the first layer
-        first_layer = list(self.model.features._modules.items())[0][1]
-        first_layer.register_backward_hook(hook_function)
+        # first_layer = list(self.model.features._modules.items())[0][1]
+        # print(list(self.model.features._modules.items())[0][1])
+        # print(first_layer)
+        # print(self.model.features._modules.items())
+        # first_layer.register_backward_hook(hook_function)
+        # first_layer.register_backward_hook(hook_function)
+        # first_layer.register_hook(hook_function)
 
     def update_relus(self):
         """
@@ -68,6 +75,11 @@ class GuidedBackprop():
         self.model.zero_grad()
         # Forward pass
         x = input_image
+        self.hook_layers(x)
+        # print(self.model.features)
+        # print('x', x.shape)
+        # print(x.device)
+        # print(x.requires_grad)
         for index, layer in enumerate(self.model.features):
             # Forward pass layer by layer
             # x is not used after this point because it is only needed to
@@ -83,7 +95,8 @@ class GuidedBackprop():
         conv_output.backward()
         # Convert Pytorch variable to numpy array
         # [0] to get rid of the first channel (1,3,224,224)
-        gradients_as_arr = self.gradients.data.detach().cpu().numpy()[0]
+        gradients_as_arr = self.gradients.detach().cpu().numpy()[0]
+
         return gradients_as_arr
 
 
@@ -91,7 +104,7 @@ if __name__ == '__main__':
     cnn_layer = 10
     filter_pos = 5
     target_example = 2  # Spider
-    (original_image, prep_img, target_class, file_name_to_export,
+    (original_image, x, target_class, file_name_to_export,
      pretrained_model) = get_example_params(target_example)
 
     # File export name
@@ -100,7 +113,7 @@ if __name__ == '__main__':
     # Guided backprop
     GBP = GuidedBackprop(pretrained_model)
     # Get gradients
-    guided_grads = GBP.generate_gradients(prep_img, target_class, cnn_layer, filter_pos)
+    guided_grads = GBP.generate_gradients(x, target_class, cnn_layer, filter_pos)
     # Save colored gradients
     save_gradient_images(guided_grads, file_name_to_export + '_Guided_BP_color')
     # Convert to grayscale

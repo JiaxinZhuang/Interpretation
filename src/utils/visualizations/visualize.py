@@ -23,13 +23,14 @@ def visualize(ori_activation_maps, opt_activation_maps,
     index2image = {index: item.split("/")[-1].split(".")[0]
                    for index, item in enumerate(imgs_path)}
     save_dict = {
-        "save_dir": "./saved/generated/" + exp + "/feature_map/",
+        # "save_dir": "/home/lincolnzjx/Desktop/Interpretation/saved/generated/" + exp + "/feature_map/",
+        "save_dir": "/media/lincolnzjx/HardDisk/myGithub/Interpretation/generated/" + exp + "/feature_map/",
         "index2image": index2image,
         "save_name": "layer-{}-{}-Comparision.png"
     }
 
     try:
-        os.mkdir(save_dict["save_dir"])
+        os.makedirs(save_dict["save_dir"])
     except FileExistsError:
         print("Directory has been created {}".format(save_dict["save_dir"]))
 

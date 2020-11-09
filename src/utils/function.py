@@ -5,6 +5,7 @@ import copy
 from functools import wraps
 import time
 from datetime import timedelta
+import gc
 
 import resource
 
@@ -48,7 +49,6 @@ def init_environment(seed=0, cuda_id=0, _print=None):
     else:
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-
 
 
 def init_logging(output_dir, exp):
@@ -420,6 +420,18 @@ def zscore(optimized_data, mean, std):
         optimized_data[:, channel, :, :] = optimized_data[:, channel, :, :] /\
             std[channel]
     return optimized_data
+
+
+def gcollect(func, *args, **kwargs):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        gc.collect()
+        # print(">> Function: {} has been garbage collected".
+        #       format(func.__name__))
+        sys.stdout.flush()
+        return ret
+    return wrapper
 
 
 if __name__ == "__main__":

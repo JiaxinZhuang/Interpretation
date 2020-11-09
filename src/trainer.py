@@ -75,6 +75,7 @@ def main():
     defensed = configs_dict["defensed"]
     avg = configs_dict["avg"]
     initialization = configs_dict["initialization"]
+    use_scheduler = configs_dict["scheduler"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -84,9 +85,9 @@ def main():
     # tf_log = os.path.join(log_dir, exp)
     # writer = SummaryWriter(log_dir=tf_log)
     generated_dir = os.path.join(generated_dir, exp)
-    if os.path.exists(generated_dir):
-        shutil.rmtree(generated_dir)
-    os.makedirs(generated_dir)
+    # if os.path.exists(generated_dir):
+    #     shutil.rmtree(generated_dir)
+    # os.makedirs(generated_dir)
 
     _print("Save generated on {}".format(generated_dir))
     _print("Using device {}".format(device))
@@ -272,7 +273,7 @@ def main():
                               momentum=0.9,
                               weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    opt, mode='min', factor=0.1, patience=200, verbose=True,
+                    opt, mode='min', factor=0.5, patience=200, verbose=True,
                     threshold=1e-4)
     elif optimizer == "Adam":
         _print("Using optimizer Adam with lr:{:.4f}".format(learning_rate))
@@ -282,6 +283,9 @@ def main():
     else:
         _print("Optimizer not available")
         sys.exit(-1)
+
+    if not use_scheduler:
+        scheduler = None
 
     start_epoch = 0
     if resume and backbone in ["vgg11", "vgg16"]:
@@ -304,21 +308,30 @@ def main():
     net.set_guildedReLU(guidedReLU)
     _print(net)
 
+    # original activation maps.
+    criterion.load_ori_activation(original_images)
+
     statistics = defaultdict(list)
     best = {"loss": float('inf')}
     for epoch in range(start_epoch, n_epochs):
         opt.zero_grad()
+
+        # Need for defensed.
+        if len(criterion.original_activation_maps) == 0:
+            criterion.load_ori_activation(original_images)
+
         selected_filter_loss, rest_fileter_loss, regularization_loss,  \
             smoothing_loss, rest_filter_loss_interact = \
-            criterion(processed_images, original_images)
+            criterion(processed_images)
         # if alpha != 0 and (1-alpha) != 0:
         # use beat to omit gradient from rest_filter_loss
         if criterion.inter:
-            loss = alpha * selected_filter_loss + \
-                beta * rest_filter_loss_interact + \
+            loss = alpha * selected_filter_loss / criterion.ori_sel_l2 + \
+                beta * rest_filter_loss_interact / criterion.ori_rest_l1 + \
                 gamma * regularization_loss + delta * smoothing_loss
         else:
-            loss = alpha * selected_filter_loss + beta * rest_fileter_loss + \
+            loss = alpha * selected_filter_loss / criterion.ori_sel_l2 + \
+                beta * rest_fileter_loss / criterion.ori_rest_l1 + \
                 gamma * regularization_loss + delta * smoothing_loss
         loss.backward()
 
@@ -392,7 +405,7 @@ def main():
                 save_image(recreate_im, save_path)
 
         # In order to save last epoch
-        if epoch+1 == n_epochs or is_break:
+        if epoch+1 == n_epochs:
             # statistics
             for img_path in imgs_path:
                 statistics["best"] = [best]
@@ -419,7 +432,9 @@ def main():
                 save_image(recreate_im, save_path)
 
             print(save_path)
-            opt_image = Image.open(save_path).convert("RGB")
+            opt_image = Image.open(save_path)
+            if opt_image.mode == 'L':
+                opt_image = np.expand_dims(opt_image, axis=2)
             opt_image = np.expand_dims(opt_image, axis=0).astype(np.float32)
             opt_image = opt_image / 255.0
             saved_opt_img = zscore(opt_image, mean, std)

@@ -8,6 +8,7 @@ import sys
 
 import torch
 import torch.nn as nn
+import gc
 
 from utils.regularization import all2zero, l1_regularization, \
         l2_regularization, total_variation_v2
@@ -33,9 +34,6 @@ class FilterLoss(nn.Module):
         self.selected_layer = selected_layer
         self.selected_filter = selected_filter
         self.mode = mode
-        # self.conv_output = None
-        # Generate a random image
-        # self.hook_layer()
         self.rho = rho
         # Use to interact different channels
         self.inter = inter
@@ -49,25 +47,39 @@ class FilterLoss(nn.Module):
         self.processed_activation_maps = []
         self.forward_hook_handler = []
         # self.backward_hook_handler = []
+        self.ori_sel_l2 = None
+        self.ori_rest_l1 = None
 
         self.defensed = defensed
         if self.defensed:
             self.hook_backward()
 
-    # def hook_layer(self):
-    #     """Hook layer.
-    #     """
-    #     def hook_function(module, grad_in, grad_out):
-    #         """Hook function.
-    #         """
-    #         # Get the conv output of selected filter (from selected layer)
-    #         # self.conv_output[self.selected_layer] = \
-    #         #                               grad_out[0, self.selected_filter]
-    #         self.conv_output = grad_out
+    def load_ori_activation(self, original_inputs):
+        # Original activation maps
+        self.original_activation_maps = []
+        self.remove_hook_forward()
+        self.hook_forward(self.original_activation_maps)
+        self.model(original_inputs)
+        original_activation_maps_cp = [ac_map.clone().detach() for ac_map in
+                                       self.original_activation_maps]
+        self.original_activation_maps += original_activation_maps_cp
 
-    #     # Hook the selected layer
-    #     self.model[self.selected_layer].\
-    #         register_forward_hook(hook_function)
+        # L2 for original selected filter.
+        _, channel, height, width = self.original_activation_maps[-1].size()
+        self.ori_sel_l2 = torch.norm(
+            self.original_activation_maps[-1][:, self.selected_filter].
+            clone().detach(), p=2) / (width * height)
+        # L1 for rest filters.
+        rest_ori_feature_map = torch.cat((
+            self.original_activation_maps[-1][:, :self.selected_filter].
+            clone().detach(),
+            self.original_activation_maps[-1][:, self.selected_filter+1:].
+            clone().detach()), dim=1
+        )
+        self.ori_rest_l1 = torch.norm(rest_ori_feature_map, p=1) / \
+            (width * height * (channel - 1))
+        self.ori_sel_l2 += 1e-8
+        self.ori_rest_l1 += 1e-8
 
     def hook_forward(self, activation_maps):
         def forward_hook_fn(module, inputs, outputs):
@@ -97,12 +109,6 @@ class FilterLoss(nn.Module):
     def hook_backward(self):
         def backward_hook_fn(module, grad_in, grad_out):
             grad_output = grad_out[0]
-            # print("-"*50)
-            # print(module)
-            # print(type(module))
-            # print(grad_output.shape)
-            # print(len(self.original_activation_maps))
-            # print(len(self.processed_activation_maps))
             o_activation_map = self.original_activation_maps.pop()
             p_activation_map = self.processed_activation_maps.pop()
 
@@ -152,7 +158,7 @@ class FilterLoss(nn.Module):
 
     #     pass
 
-    def forward(self, processed_inputs, original_inputs):
+    def forward(self, processed_inputs):
         """
         Args:
             processed_inputs: [batch_size, channels, height, width]
@@ -163,16 +169,7 @@ class FilterLoss(nn.Module):
             regularization_loss:
             smoothing_loss:
         """
-        self.original_activation_maps = []
         self.processed_activation_maps = []
-
-        self.remove_hook_forward()
-        self.hook_forward(self.original_activation_maps)
-
-        self.model(original_inputs)
-        original_activation_maps_cp = [ac_map.clone() for ac_map in
-                                       self.original_activation_maps]
-        self.original_activation_maps += original_activation_maps_cp
 
         selected_original_feature_map = \
             self.original_activation_maps[-1][:, self.selected_filter].clone()
@@ -194,16 +191,9 @@ class FilterLoss(nn.Module):
                  self.processed_activation_maps[-1][:,
                                                     self.selected_filter+1:].clone()),
                 dim=1)
-        # torch.cat((processed_outputs[:, :self.selected_filter],
-        #            processed_outputs[:, self.selected_filter+1:]),
-        # print(rest_processed_feature_map.size())
         selected_processed_feature_map = \
             self.processed_activation_maps[-1][:, self.selected_filter].clone()
-        # processed_outputs[:, self.selected_filter]
-        # print("selected_processed_feature_map:",
-        # selected_processed_feature_map.size())
         *_, height, width = selected_processed_feature_map.size()
-        # pixels = height * width
 
         # Whether to use interact to ignore some feature map
         # TODO, need to return two rest
@@ -215,10 +205,8 @@ class FilterLoss(nn.Module):
             selected_filter_norm = torch.norm((selected_original_feature_map -
                                                selected_processed_feature_map),
                                               dim=(1, 2), p=2)
-            selected_filter_square = selected_filter_norm ** 2
-            selected_filter_square_avg = selected_filter_square /\
-                (height * width)
-            selected_filter_loss = torch.mean(selected_filter_square_avg)
+            selected_filter_norm = selected_filter_norm / (height * width)
+            selected_filter_loss = torch.mean(selected_filter_norm)
 
             rest_feature_map_norm = torch.norm(rest_processed_feature_map,
                                                dim=(2, 3), p=1)

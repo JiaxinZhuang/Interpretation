@@ -56,7 +56,7 @@ class VGG16(nn.Module):
         out = self.features(inputs)
         if self.selected_layer is None:
             out = self.avgpool(out)
-            out = out.view(out.size(0), -1)
+            out = out.reshape(out.size(0), -1)
             out = self.fc(out)
         return out
 

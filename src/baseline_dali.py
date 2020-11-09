@@ -312,7 +312,7 @@ def main_worker(rank_index, ngpus_per_node, configs_dict):
             _print("Epoch:{} - train acc1: {:.3f}; acc5: {:.3f}".
                    format(epoch, top1.avg, top5.avg))
 
-        if freeze or epoch % eval_frequency:
+        if freeze or epoch % eval_frequency or epoch == n_epochs-1:
             losses, top1, top5 = validate(val_loader, net, criterion,
                                           batch_size=batch_size_per_gpu,
                                           distributed=distributed,

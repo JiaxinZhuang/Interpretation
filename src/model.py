@@ -59,7 +59,7 @@ class Network(nn.Module):
         def forward_hook_fn(module, inputs, outputs):
             """Hook forward function.
             """
-            outputs_cpu = outputs.detach().clone().cpu().numpy()
+            outputs_cpu = outputs.cpu().numpy()
             activation_maps.append(outputs_cpu)
 
         for name, module in self.model.named_modules():
@@ -72,15 +72,18 @@ class Network(nn.Module):
 
     def get_activation_maps(self, inputs, selected_layer):
         self.model.eval()
-        inputs = inputs.detach().clone()
-        self.selected_layer = selected_layer
-        self.activation_maps = []
-        self.fn_handler = []
-        self.hook_forward(self.activation_maps)
-        self.model(inputs)
-        for handler in self.fn_handler:
-            handler.remove()
-        self.forward_hook_handler = []
+        with torch.no_grad():
+            inputs = inputs.detach().clone()
+            self.selected_layer = selected_layer
+            self.activation_maps = []
+            self.fn_handler = []
+            self.hook_forward(self.activation_maps)
+            self.model(inputs)
+            for handler in self.fn_handler:
+                handler.remove()
+            self.forward_hook_handler = []
+            # torch.cuda.empty_cache()
+            del inputs
         return self.activation_maps
 
 
